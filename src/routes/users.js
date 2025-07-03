@@ -12,7 +12,7 @@ const routes = [
       validate: {
         query: validators.getUsersQuerySchema
       },
-      auth: 'jwt'
+      auth: 'webhook'
     }
   },
   {
@@ -25,7 +25,7 @@ const routes = [
       validate: {
         params: validators.userIdParamSchema
       },
-      auth: 'jwt'
+      auth: 'webhook'
     }
   },
   {
@@ -39,7 +39,7 @@ const routes = [
         params: validators.userIdParamSchema,
         payload: validators.updateUserSchema
       },
-      auth: 'jwt'
+      auth: 'webhook'
     }
   },
   {
@@ -52,7 +52,7 @@ const routes = [
       validate: {
         params: validators.userIdParamSchema
       },
-      auth: 'jwt'
+      auth: 'webhook'
     }
   },
   {
@@ -66,7 +66,7 @@ const routes = [
         params: validators.userIdParamSchema,
         payload: validators.changePasswordSchema
       },
-      auth: 'jwt'
+      auth: 'webhook'
     }
   }
 ];

@@ -1,5 +1,6 @@
 const logController = require('../controllers/logController');
 const validators = require('../validators/logValidators');
+const Joi = require('joi');
 
 const routes = [
   {
@@ -8,11 +9,13 @@ const routes = [
     handler: logController.createLog,
     options: {
       description: 'Create a new log entry',
+      notes: 'Creates a new log entry in the system with the provided data',
       tags: ['api', 'logs'],
       validate: {
         payload: validators.createLogSchema
       },
-      auth: 'jwt'
+
+      auth: 'webhook'
     }
   },
   {
@@ -21,11 +24,13 @@ const routes = [
     handler: logController.getAllLogs,
     options: {
       description: 'Get all logs with filtering and pagination',
+      notes: 'Retrieves a paginated list of logs with optional filtering by level, source, user ID, and date range',
       tags: ['api', 'logs'],
       validate: {
         query: validators.getLogsQuerySchema
       },
-      auth: 'jwt'
+
+      auth: 'webhook'
     }
   },
   {
@@ -38,7 +43,7 @@ const routes = [
       validate: {
         params: validators.logIdParamSchema
       },
-      auth: 'jwt'
+      auth: 'webhook'
     }
   },
   {
@@ -52,7 +57,7 @@ const routes = [
         params: validators.logIdParamSchema,
         payload: validators.updateLogSchema
       },
-      auth: 'jwt'
+      auth: 'webhook'
     }
   },
   {
@@ -65,7 +70,7 @@ const routes = [
       validate: {
         params: validators.logIdParamSchema
       },
-      auth: 'jwt'
+      auth: 'webhook'
     }
   },
   {
@@ -78,7 +83,7 @@ const routes = [
       validate: {
         query: validators.searchLogsQuerySchema
       },
-      auth: 'jwt'
+      auth: 'webhook'
     }
   },
   {
@@ -91,7 +96,7 @@ const routes = [
       validate: {
         query: validators.logStatsQuerySchema
       },
-      auth: 'jwt'
+      auth: 'webhook'
     }
   }
 ];

@@ -1,68 +1,30 @@
-const jwt = require('jsonwebtoken');
 const config = require('../../config');
-const User = require('../models/User');
 
 const authService = {
-  // Generate access and refresh tokens
-  generateTokens: async (user) => {
-    const payload = {
-      userId: user.id,
-      email: user.email,
-      role: user.role
-    };
+  // Validate webhook token
+  validateWebhookToken: (token) => {
+    if (!token) {
+      return false;
+    }
+    
+    // Check if the token exists in the configured webhook tokens
+    return config.webhooks.tokens.includes(token);
+  },
 
-    const accessToken = jwt.sign(payload, config.jwt.secret, {
-      expiresIn: config.jwt.expiresIn
-    });
+  // Get webhook info from token
+  getWebhookInfo: (token) => {
+    if (!authService.validateWebhookToken(token)) {
+      throw new Error('Invalid webhook token');
+    }
 
-    const refreshToken = jwt.sign(
-      { userId: user.id },
-      config.jwt.secret,
-      { expiresIn: '7d' }
-    );
-
+    // Return webhook info (can be extended to include more details per token)
     return {
-      accessToken,
-      refreshToken,
-      tokenType: 'Bearer',
-      expiresIn: config.jwt.expiresIn
+      token,
+      type: 'webhook',
+      isValid: true,
+      // You can extend this to map tokens to specific permissions or identities
+      permissions: ['read', 'write']
     };
-  },
-
-  // Verify access token
-  verifyAccessToken: async (token) => {
-    try {
-      const decoded = jwt.verify(token, config.jwt.secret);
-      return decoded;
-    } catch (error) {
-      throw new Error('Invalid access token');
-    }
-  },
-
-  // Verify refresh token
-  verifyRefreshToken: async (token) => {
-    try {
-      const decoded = jwt.verify(token, config.jwt.secret);
-      return decoded;
-    } catch (error) {
-      throw new Error('Invalid refresh token');
-    }
-  },
-
-  // Get user from token (for auth middleware)
-  getUserFromToken: async (token) => {
-    try {
-      const decoded = await authService.verifyAccessToken(token);
-      const user = await User.findById(decoded.userId);
-      
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      return user;
-    } catch (error) {
-      throw new Error('Invalid token or user not found');
-    }
   }
 };
 

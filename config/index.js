@@ -10,13 +10,13 @@ const config = {
   database: {
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT) || 8889,
-    database: process.env.DB_NAME || 'moodle401',
+    database: process.env.DB_NAME || 'moodle_logs',
     user: process.env.DB_USER || 'moodle',
     password: process.env.DB_PASSWORD || 'moodle',
     connectionLimit: 10,
-    acquireTimeout: 60000,
-    timeout: 60000,
-    reconnect: true
+    // Removed incompatible MySQL2 options: acquireTimeout, timeout, reconnect
+    waitForConnections: true,
+    queueLimit: 0
   },
   
   jwt: {
@@ -35,6 +35,13 @@ const config = {
   
   api: {
     prefix: process.env.API_PREFIX || '/api/v1'
+  },
+  
+  webhooks: {
+    // Store webhook tokens as comma-separated values in env
+    tokens: process.env.WEBHOOK_TOKENS ? 
+      process.env.WEBHOOK_TOKENS.split(',').map(t => t.trim()) : 
+      ['default-webhook-token-change-this']
   }
 };
 

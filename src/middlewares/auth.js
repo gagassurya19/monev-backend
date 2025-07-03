@@ -1,39 +1,43 @@
 const authService = require('../services/authService');
 
-const jwtAuth = {
-  name: 'jwt',
-  scheme: 'bearer-access-token',
+const webhookAuth = {
+  name: 'webhook',
+  scheme: 'webhook-token',
   
   implementation: (server, options) => {
     return {
       authenticate: async (request, h) => {
         try {
-          const authorization = request.headers.authorization;
+          let token = null;
           
-          if (!authorization) {
-            return h.unauthenticated('Missing authorization header');
+          // Check for token in query parameters first (webhook style)
+          if (request.query && request.query.token) {
+            token = request.query.token;
           }
-          
-          const token = authorization.replace(/Bearer\s+/i, '');
+          // Also check Authorization header as fallback
+          else if (request.headers.authorization) {
+            const authorization = request.headers.authorization;
+            token = authorization.replace(/Bearer\s+/i, '');
+          }
           
           if (!token) {
-            return h.unauthenticated('Missing token');
+            return h.unauthenticated('Missing webhook token');
           }
           
-          // Verify token and get user
-          const user = await authService.getUserFromToken(token);
+          // Validate webhook token
+          const webhookInfo = authService.getWebhookInfo(token);
           
           return h.authenticated({
-            credentials: user,
+            credentials: webhookInfo,
             artifacts: { token }
           });
           
         } catch (error) {
-          return h.unauthenticated('Invalid token');
+          return h.unauthenticated('Invalid webhook token');
         }
       }
     };
   }
 };
 
-module.exports = jwtAuth; 
+module.exports = webhookAuth; 

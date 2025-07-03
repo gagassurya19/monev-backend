@@ -1,4 +1,4 @@
-const Joi = require('@hapi/joi');
+const Joi = require('joi');
 
 const logValidators = {
   logIdParamSchema: Joi.object({
@@ -68,6 +68,9 @@ const logValidators = {
   }).min(1),
 
   getLogsQuerySchema: Joi.object({
+    token: Joi.string()
+      .description('Webhook authentication token'),
+    
     page: Joi.number()
       .integer()
       .min(1)
@@ -115,6 +118,9 @@ const logValidators = {
   }),
 
   searchLogsQuerySchema: Joi.object({
+    token: Joi.string()
+      .description('Webhook authentication token'),
+    
     q: Joi.string()
       .min(1)
       .max(200)
@@ -153,6 +159,9 @@ const logValidators = {
   }),
 
   logStatsQuerySchema: Joi.object({
+    token: Joi.string()
+      .description('Webhook authentication token'),
+    
     startDate: Joi.date()
       .iso()
       .description('Start date for statistics'),

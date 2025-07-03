@@ -3,6 +3,7 @@ const config = require('../config');
 const logger = require('./utils/logger');
 const database = require('./database/connection');
 const routes = require('./routes');
+const cronService = require('./services/cronService');
 
 const init = async () => {
   // Create Hapi server instance
@@ -30,13 +31,17 @@ const init = async () => {
   // Register plugins
   await server.register([
     require('@hapi/inert'),
-    require('@hapi/vision')
+    require('@hapi/vision'),
+    {
+      plugin: require('hapi-swagger'),
+      options: require('../config/swagger')
+    }
   ]);
 
   // Register authentication scheme
   const authMiddleware = require('./middlewares/auth');
   server.auth.scheme(authMiddleware.scheme, authMiddleware.implementation);
-  server.auth.strategy('jwt', authMiddleware.scheme);
+  server.auth.strategy('webhook', authMiddleware.scheme);
 
   // Register routes
   server.route(routes);
@@ -70,6 +75,10 @@ const init = async () => {
   await server.start();
   logger.info(`Server running on ${server.info.uri}`);
   
+  // Initialize and start cron jobs
+  cronService.initialize();
+  cronService.start();
+  
   return server;
 };
 
@@ -82,6 +91,8 @@ process.on('unhandledRejection', (err) => {
 // Graceful shutdown
 process.on('SIGINT', async () => {
   logger.info('Received SIGINT, shutting down gracefully');
+  cronService.stop();
+  cronService.destroy();
   await database.closeConnection();
   process.exit(0);
 });

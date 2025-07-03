@@ -1,4 +1,4 @@
-const Joi = require('@hapi/joi');
+const Joi = require('joi');
 
 const userValidators = {
   userIdParamSchema: Joi.object({
@@ -10,6 +10,9 @@ const userValidators = {
   }),
 
   getUsersQuerySchema: Joi.object({
+    token: Joi.string()
+      .description('Webhook authentication token'),
+    
     page: Joi.number()
       .integer()
       .min(1)

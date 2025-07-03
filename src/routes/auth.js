@@ -1,64 +1,44 @@
 const authController = require('../controllers/authController');
 const validators = require('../validators/authValidators');
+const Joi = require('joi');
 
 const routes = [
   {
-    method: 'POST',
-    path: '/auth/register',
-    handler: authController.register,
+    method: 'GET',
+    path: '/auth/validate',
+    handler: authController.validateToken,
     options: {
-      description: 'Register a new user',
+      description: 'Validate webhook token',
+      notes: 'Validates a webhook token provided via query parameter',
       tags: ['api', 'auth'],
       validate: {
-        payload: validators.registerSchema
+        query: validators.tokenQuerySchema
       },
+
       auth: false
     }
   },
   {
     method: 'POST',
-    path: '/auth/login',
-    handler: authController.login,
+    path: '/auth/validate',
+    handler: authController.validateToken,
     options: {
-      description: 'User login',
+      description: 'Validate webhook token (POST)',
       tags: ['api', 'auth'],
       validate: {
-        payload: validators.loginSchema
+        payload: validators.tokenPayloadSchema
       },
       auth: false
-    }
-  },
-  {
-    method: 'POST',
-    path: '/auth/refresh',
-    handler: authController.refreshToken,
-    options: {
-      description: 'Refresh access token',
-      tags: ['api', 'auth'],
-      validate: {
-        payload: validators.refreshTokenSchema
-      },
-      auth: false
-    }
-  },
-  {
-    method: 'POST',
-    path: '/auth/logout',
-    handler: authController.logout,
-    options: {
-      description: 'User logout',
-      tags: ['api', 'auth'],
-      auth: 'jwt'
     }
   },
   {
     method: 'GET',
-    path: '/auth/me',
-    handler: authController.getCurrentUser,
+    path: '/auth/webhook',
+    handler: authController.getCurrentWebhook,
     options: {
-      description: 'Get current user information',
+      description: 'Get current webhook information',
       tags: ['api', 'auth'],
-      auth: 'jwt'
+      auth: 'webhook'
     }
   }
 ];
