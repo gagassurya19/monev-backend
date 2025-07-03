@@ -10,7 +10,10 @@ const routes = [
       description: 'Manually trigger ETL process',
       notes: 'Manually trigger the ETL process to extract, transform, and load data from Moodle',
       tags: ['api', 'etl'],
-      auth: 'webhook'
+      validate: {
+        query: validators.etlQuerySchema
+      },
+      auth: 'webhook',
     }
   },
   {
@@ -21,6 +24,9 @@ const routes = [
       description: 'Get ETL process status',
       notes: 'Get the current status and information about ETL processes',
       tags: ['api', 'etl'],
+      validate: {
+        query: validators.etlQuerySchema
+      },
       auth: 'webhook'
     }
   }

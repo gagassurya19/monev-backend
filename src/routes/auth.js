@@ -9,7 +9,7 @@ const routes = [
     handler: authController.validateToken,
     options: {
       description: 'Validate webhook token',
-      notes: 'Validates a webhook token provided via query parameter',
+      notes: 'Validates a webhook token provided via query parameter. demo-token: test-webhook-token',
       tags: ['api', 'auth'],
       validate: {
         query: validators.tokenQuerySchema
@@ -18,29 +18,29 @@ const routes = [
       auth: false
     }
   },
-  {
-    method: 'POST',
-    path: '/auth/validate',
-    handler: authController.validateToken,
-    options: {
-      description: 'Validate webhook token (POST)',
-      tags: ['api', 'auth'],
-      validate: {
-        payload: validators.tokenPayloadSchema
-      },
-      auth: false
-    }
-  },
-  {
-    method: 'GET',
-    path: '/auth/webhook',
-    handler: authController.getCurrentWebhook,
-    options: {
-      description: 'Get current webhook information',
-      tags: ['api', 'auth'],
-      auth: 'webhook'
-    }
-  }
+  // {
+  //   method: 'POST',
+  //   path: '/auth/validate',
+  //   handler: authController.validateToken,
+  //   options: {
+  //     description: 'Validate webhook token (POST)',
+  //     tags: ['api', 'auth'],
+  //     validate: {
+  //       payload: validators.tokenPayloadSchema
+  //     },
+  //     auth: false
+  //   }
+  // },
+  // {
+  //   method: 'GET',
+  //   path: '/auth/webhook',
+  //   handler: authController.getCurrentWebhook,
+  //   options: {
+  //     description: 'Get current webhook information',
+  //     tags: ['api', 'auth'],
+  //     auth: 'webhook'
+  //   }
+  // }
 ];
 
 module.exports = routes; 

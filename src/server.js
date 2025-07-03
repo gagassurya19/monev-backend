@@ -40,8 +40,8 @@ const init = async () => {
 
   // Register authentication scheme
   const authMiddleware = require('./middlewares/auth');
-  server.auth.scheme(authMiddleware.scheme, authMiddleware.implementation);
-  server.auth.strategy('webhook', authMiddleware.scheme);
+  server.auth.scheme(authMiddleware.name, authMiddleware.implementation);
+  server.auth.strategy('webhook', authMiddleware.name);
 
   // Register routes
   server.route(routes);

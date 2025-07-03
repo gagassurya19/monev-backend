@@ -46,16 +46,10 @@ const isValidEmail = (email) => {
   return emailRegex.test(email);
 };
 
-const sanitizeUser = (user) => {
-  const { password, ...sanitizedUser } = user;
-  return sanitizedUser;
-};
-
 module.exports = {
   getPaginationMeta,
   sanitizeLikePattern,
   generateRandomString,
   formatDateForMySQL,
-  isValidEmail,
-  sanitizeUser
+  isValidEmail
 }; 
