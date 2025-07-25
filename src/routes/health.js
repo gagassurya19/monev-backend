@@ -1,5 +1,5 @@
-const healthController = require('../controllers/healthController');
-const Joi = require('joi');
+const healthController = require('../controllers/healthController')
+const Joi = require('joi')
 
 const routes = [
   {
@@ -26,6 +26,6 @@ const routes = [
       auth: false
     }
   }
-];
+]
 
-module.exports = routes; 
+module.exports = routes

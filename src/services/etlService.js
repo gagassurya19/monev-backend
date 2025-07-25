@@ -1,14 +1,14 @@
-const mysql = require('mysql2/promise');
-const config = require('../../config');
-const logger = require('../utils/logger');
+const mysql = require('mysql2/promise')
+const config = require('../../config')
+const logger = require('../utils/logger')
 
 const etlService = {
   // Main ETL function that runs all ETL operations
   runETL: async () => {
-    let conn;
+    let conn
     try {
-      logger.info('Starting ETL process');
-      
+      logger.info('Starting ETL process')
+
       // Create database connection
       conn = await mysql.createConnection({
         host: config.database.host,
@@ -17,25 +17,24 @@ const etlService = {
         password: config.database.password,
         database: config.database.database,
         multipleStatements: true
-      });
+      })
 
-      logger.info('Database connection established for ETL');
+      logger.info('Database connection established for ETL')
 
       // Clear existing data for fresh ETL run
-      await etlService.clearExistingData(conn);
+      await etlService.clearExistingData(conn)
 
       // Run all ETL operations
-      await etlService.etlRawLog(conn);
-      await etlService.etlCourseActivitySummary(conn);
-      await etlService.etlStudentProfile(conn);
-      await etlService.etlStudentQuizDetail(conn);
-      await etlService.etlStudentAssignmentDetail(conn);
-      await etlService.etlStudentResourceAccess(conn);
-      await etlService.etlCourseSummary(conn);
+      await etlService.etlRawLog(conn)
+      await etlService.etlCourseActivitySummary(conn)
+      await etlService.etlStudentProfile(conn)
+      await etlService.etlStudentQuizDetail(conn)
+      await etlService.etlStudentAssignmentDetail(conn)
+      await etlService.etlStudentResourceAccess(conn)
+      await etlService.etlCourseSummary(conn)
 
-      logger.info('ETL process completed successfully');
-      return { success: true, message: 'ETL process completed successfully', timestamp: new Date().toISOString() };
-
+      logger.info('ETL process completed successfully')
+      return { success: true, message: 'ETL process completed successfully', timestamp: new Date().toISOString() }
     } catch (error) {
       logger.error('ETL process failed:', {
         message: error.message,
@@ -44,12 +43,12 @@ const etlService = {
         errno: error.errno,
         sqlState: error.sqlState,
         sqlMessage: error.sqlMessage
-      });
-      throw error;
+      })
+      throw error
     } finally {
       if (conn) {
-        await conn.end();
-        logger.info('ETL database connection closed');
+        await conn.end()
+        logger.info('ETL database connection closed')
       }
     }
   },
@@ -57,17 +56,17 @@ const etlService = {
   // Clear existing data before ETL run
   clearExistingData: async (conn) => {
     try {
-      logger.info('Clearing existing ETL data');
-      
-      await conn.query('DELETE FROM student_resource_access');
-      await conn.query('DELETE FROM student_assignment_detail');
-      await conn.query('DELETE FROM student_quiz_detail');
-      await conn.query('DELETE FROM student_profile');
-      await conn.query('DELETE FROM course_activity_summary');
-      await conn.query('DELETE FROM course_summary');
-      await conn.query('DELETE FROM raw_log');
-      
-      logger.info('Existing ETL data cleared');
+      logger.info('Clearing existing ETL data')
+
+      await conn.query('DELETE FROM student_resource_access')
+      await conn.query('DELETE FROM student_assignment_detail')
+      await conn.query('DELETE FROM student_quiz_detail')
+      await conn.query('DELETE FROM student_profile')
+      await conn.query('DELETE FROM course_activity_summary')
+      await conn.query('DELETE FROM course_summary')
+      await conn.query('DELETE FROM raw_log')
+
+      logger.info('Existing ETL data cleared')
     } catch (error) {
       logger.error('Error clearing existing data:', {
         message: error.message,
@@ -75,16 +74,16 @@ const etlService = {
         errno: error.errno,
         sqlState: error.sqlState,
         sqlMessage: error.sqlMessage
-      });
-      throw error;
+      })
+      throw error
     }
   },
 
   // ETL 1: raw_log
   etlRawLog: async (conn) => {
     try {
-      logger.info('Running ETL 1: raw_log');
-      
+      logger.info('Running ETL 1: raw_log')
+
       const [result] = await conn.query(`
         INSERT INTO raw_log
         SELECT 
@@ -93,9 +92,9 @@ const etlService = {
           userid, courseid, relateduserid, anonymous, other,
           timecreated, origin, ip, realuserid
         FROM moodle401.mdl_logstore_standard_log
-      `);
-      
-      logger.info(`ETL 1 completed: ${result.affectedRows} records inserted`);
+      `)
+
+      logger.info(`ETL 1 completed: ${result.affectedRows} records inserted`)
     } catch (error) {
       logger.error('ETL 1 (raw_log) failed:', {
         message: error.message,
@@ -103,16 +102,16 @@ const etlService = {
         errno: error.errno,
         sqlState: error.sqlState,
         sqlMessage: error.sqlMessage
-      });
-      throw error;
+      })
+      throw error
     }
   },
 
   // ETL 2: course_activity_summary
   etlCourseActivitySummary: async (conn) => {
     try {
-      logger.info('Running ETL 2: course_activity_summary');
-      
+      logger.info('Running ETL 2: course_activity_summary')
+
       const [result] = await conn.query(`
         INSERT INTO course_activity_summary (
           course_id, section, activity_id, activity_type, activity_name,
@@ -151,20 +150,20 @@ const etlService = {
         LEFT JOIN moodle401.mdl_logstore_standard_log l ON l.contextinstanceid = cm.id AND l.contextlevel = 70 AND l.action = 'viewed'
         WHERE m.name IN ('resource', 'assign', 'quiz')
         GROUP BY c.id, cs.section, cm.instance, m.name, res.name, a.name, q.name
-      `);
-      
-      logger.info(`ETL 2 completed: ${result.affectedRows} records inserted`);
+      `)
+
+      logger.info(`ETL 2 completed: ${result.affectedRows} records inserted`)
     } catch (error) {
-      logger.error('ETL 2 (course_activity_summary) failed:', error.message);
-      throw error;
+      logger.error('ETL 2 (course_activity_summary) failed:', error.message)
+      throw error
     }
   },
 
   // ETL 3: student_profile
   etlStudentProfile: async (conn) => {
     try {
-      logger.info('Running ETL 3: student_profile');
-      
+      logger.info('Running ETL 3: student_profile')
+
       const [result] = await conn.query(`
         INSERT INTO student_profile (
           user_id, idnumber, full_name, email, program_studi
@@ -178,20 +177,20 @@ const etlService = {
           JOIN moodle401.mdl_context ctx ON ctx.id = ra.contextid
           WHERE ra.roleid = 5
         )
-      `);
-      
-      logger.info(`ETL 3 completed: ${result.affectedRows} records inserted`);
+      `)
+
+      logger.info(`ETL 3 completed: ${result.affectedRows} records inserted`)
     } catch (error) {
-      logger.error('ETL 3 (student_profile) failed:', error.message);
-      throw error;
+      logger.error('ETL 3 (student_profile) failed:', error.message)
+      throw error
     }
   },
 
   // ETL 4: student_quiz_detail
   etlStudentQuizDetail: async (conn) => {
     try {
-      logger.info('Running ETL 4: student_quiz_detail');
-      
+      logger.info('Running ETL 4: student_quiz_detail')
+
       const [result] = await conn.query(`
         INSERT INTO student_quiz_detail (
           quiz_id, user_id, nim, full_name, waktu_mulai, waktu_selesai,
@@ -210,20 +209,20 @@ const etlService = {
         JOIN moodle401.mdl_user u ON u.id = qa.userid
         JOIN moodle401.mdl_quiz q ON q.id = qa.quiz
         WHERE qa.state = 'finished'
-      `);
-      
-      logger.info(`ETL 4 completed: ${result.affectedRows} records inserted`);
+      `)
+
+      logger.info(`ETL 4 completed: ${result.affectedRows} records inserted`)
     } catch (error) {
-      logger.error('ETL 4 (student_quiz_detail) failed:', error.message);
-      throw error;
+      logger.error('ETL 4 (student_quiz_detail) failed:', error.message)
+      throw error
     }
   },
 
   // ETL 5: student_assignment_detail
   etlStudentAssignmentDetail: async (conn) => {
     try {
-      logger.info('Running ETL 5: student_assignment_detail');
-      
+      logger.info('Running ETL 5: student_assignment_detail')
+
       const [result] = await conn.query(`
         INSERT INTO student_assignment_detail (
           assignment_id, user_id, nim, full_name, waktu_submit, waktu_pengerjaan, nilai
@@ -244,20 +243,20 @@ const etlService = {
         JOIN moodle401.mdl_grade_items gi ON gi.iteminstance = a.id AND gi.itemmodule = 'assign'
         JOIN moodle401.mdl_grade_grades gg ON gg.itemid = gi.id AND gg.userid = u.id
         WHERE sub.status = 'submitted'
-      `);
-      
-      logger.info(`ETL 5 completed: ${result.affectedRows} records inserted`);
+      `)
+
+      logger.info(`ETL 5 completed: ${result.affectedRows} records inserted`)
     } catch (error) {
-      logger.error('ETL 5 (student_assignment_detail) failed:', error.message);
-      throw error;
+      logger.error('ETL 5 (student_assignment_detail) failed:', error.message)
+      throw error
     }
   },
 
   // ETL 6: student_resource_access
   etlStudentResourceAccess: async (conn) => {
     try {
-      logger.info('Running ETL 6: student_resource_access');
-      
+      logger.info('Running ETL 6: student_resource_access')
+
       const [result] = await conn.query(`
         INSERT INTO student_resource_access (
           resource_id, user_id, nim, full_name, waktu_akses
@@ -271,20 +270,20 @@ const etlService = {
         JOIN moodle401.mdl_modules m ON m.id = cm.module
         JOIN moodle401.mdl_resource r ON r.id = cm.instance AND m.name = 'resource'
         WHERE l.action = 'viewed' AND l.component = 'mod_resource' AND l.target = 'course_module'
-      `);
-      
-      logger.info(`ETL 6 completed: ${result.affectedRows} records inserted`);
+      `)
+
+      logger.info(`ETL 6 completed: ${result.affectedRows} records inserted`)
     } catch (error) {
-      logger.error('ETL 6 (student_resource_access) failed:', error.message);
-      throw error;
+      logger.error('ETL 6 (student_resource_access) failed:', error.message)
+      throw error
     }
   },
 
   // ETL 7: course_summary
   etlCourseSummary: async (conn) => {
     try {
-      logger.info('Running ETL 7: course_summary');
-      
+      logger.info('Running ETL 7: course_summary')
+
       const [result] = await conn.query(`
         INSERT INTO course_summary (
           course_id, course_name, kelas, jumlah_aktivitas, jumlah_mahasiswa
@@ -297,12 +296,12 @@ const etlService = {
            WHERE ctx.contextlevel = 50 AND ctx.instanceid = c.id AND ra.roleid = 5)
         FROM moodle401.mdl_course c
         WHERE c.visible = 1
-      `);
-      
-      logger.info(`ETL 7 completed: ${result.affectedRows} records inserted`);
+      `)
+
+      logger.info(`ETL 7 completed: ${result.affectedRows} records inserted`)
     } catch (error) {
-      logger.error('ETL 7 (course_summary) failed:', error.message);
-      throw error;
+      logger.error('ETL 7 (course_summary) failed:', error.message)
+      throw error
     }
   },
 
@@ -316,12 +315,12 @@ const etlService = {
         lastRun: null, // You can store this in a database table
         nextRun: 'Every hour at minute 0',
         isRunning: false
-      };
+      }
     } catch (error) {
-      logger.error('Error getting ETL status:', error.message);
-      throw error;
+      logger.error('Error getting ETL status:', error.message)
+      throw error
     }
   }
-};
+}
 
-module.exports = etlService; 
+module.exports = etlService

@@ -1,31 +1,101 @@
-const config = require('../../config');
+const config = require('../../config')
+const jwt = require('jsonwebtoken')
 
 const authService = {
-  // Validate webhook token
-  validateWebhookToken: (token) => {
-    if (!token) {
-      return false;
+  // Generate a JWT token
+  generateToken: (payload, expiresIn = null) => {
+    const options = {}
+    if (expiresIn) {
+      options.expiresIn = expiresIn
+    } else {
+      options.expiresIn = config.jwt.expiresIn
     }
-    
-    // Check if the token exists in the configured webhook tokens
-    return config.webhooks.tokens.includes(token);
+
+    return jwt.sign(payload, config.jwt.secret, options)
   },
 
-  // Get webhook info from token
-  getWebhookInfo: (token) => {
-    if (!authService.validateWebhookToken(token)) {
-      throw new Error('Invalid webhook token');
+  // Validate JWT token using secret key from environment
+  validateToken: (token) => {
+    if (!token) {
+      return false
     }
 
-    // Return webhook info (can be extended to include more details per token)
-    return {
-      token,
-      type: 'webhook',
-      isValid: true,
-      // You can extend this to map tokens to specific permissions or identities
-      permissions: ['read', 'write']
-    };
-  }
-};
+    try {
+      // First try to verify with our secret key
+      const decoded = jwt.verify(token, config.jwt.secret)
+      return decoded
+    } catch (error) {
+      // If verification fails, try to validate as external token
+      return authService.validateExternalToken(token)
+    }
+  },
 
-module.exports = authService; 
+  // Validate external JWT token without signature verification
+  validateExternalToken: (token) => {
+    if (!token) {
+      return false
+    }
+
+    try {
+      // Decode token without signature verification
+      const decoded = jwt.decode(token, { complete: false })
+
+      if (!decoded) {
+        return false
+      }
+
+      // Validate token structure - ensure required fields exist
+      if (!decoded.sub) {
+        return false
+      }
+
+      // Check if token is expired
+      if (decoded.exp && Math.floor(Date.now() / 1000) >= decoded.exp) {
+        return false
+      }
+
+      // Return the decoded payload
+      return decoded
+    } catch (error) {
+      return false
+    }
+  },
+
+  // Verify and decode JWT token
+  verifyJwtToken: (token) => {
+    try {
+      // First try to verify with our secret key
+      return jwt.verify(token, config.jwt.secret)
+    } catch (error) {
+      // If verification fails, try to validate as external token
+      const externalValidation = authService.validateExternalToken(token)
+      if (externalValidation) {
+        return externalValidation
+      }
+      throw new Error(`JWT verification failed: ${error.message}`)
+    }
+  },
+
+  // Generate a JWT token with platform-compatible payload structure
+  generateJwtToken: (payload = {}) => {
+    // Default payload structure matching external platform
+    const defaultPayload = {
+      sub: 'default-user',
+      name: 'Default User',
+      kampus: '',
+      fakultas: '',
+      prodi: '',
+      admin: false
+    }
+
+    // Merge with provided payload
+    const finalPayload = {
+      ...defaultPayload,
+      ...payload
+    }
+
+    return authService.generateToken(finalPayload, '30d') // 30 days expiration
+  }
+}
+
+module.exports = authService

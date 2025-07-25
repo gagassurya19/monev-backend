@@ -1,12 +1,12 @@
-const winston = require('winston');
-const path = require('path');
-const config = require('../../config');
+const winston = require('winston')
+const path = require('path')
+const config = require('../../config')
 
 // Create logs directory if it doesn't exist
-const fs = require('fs');
-const logsDir = path.dirname(config.logging.file);
+const fs = require('fs')
+const logsDir = path.dirname(config.logging.file)
 if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
+  fs.mkdirSync(logsDir, { recursive: true })
 }
 
 // Custom format for logs
@@ -19,9 +19,9 @@ const logFormat = winston.format.combine(
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     return `${timestamp} [${level.toUpperCase()}]: ${message} ${
       Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
-    }`;
+    }`
   })
-);
+)
 
 // Create logger instance
 const logger = winston.createLogger({
@@ -36,7 +36,7 @@ const logger = winston.createLogger({
       maxsize: 10485760, // 10MB
       maxFiles: 5
     }),
-    
+
     // Write all logs to combined.log
     new winston.transports.File({
       filename: config.logging.file,
@@ -44,7 +44,7 @@ const logger = winston.createLogger({
       maxFiles: 5
     })
   ]
-});
+})
 
 // Add console transport for development
 if (config.server.env !== 'production') {
@@ -55,10 +55,10 @@ if (config.server.env !== 'production') {
       winston.format.printf(({ timestamp, level, message, ...meta }) => {
         return `${timestamp} [${level}]: ${message} ${
           Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
-        }`;
+        }`
       })
     )
-  }));
+  }))
 }
 
 // Add request logging helper
@@ -70,13 +70,13 @@ logger.logRequest = (req, statusCode, responseTime) => {
     responseTime: `${responseTime}ms`,
     userAgent: req.headers['user-agent'],
     ip: req.info.remoteAddress
-  };
-  
-  if (statusCode >= 400) {
-    logger.warn('HTTP Request', logData);
-  } else {
-    logger.info('HTTP Request', logData);
   }
-};
 
-module.exports = logger; 
+  if (statusCode >= 400) {
+    logger.warn('HTTP Request', logData)
+  } else {
+    logger.info('HTTP Request', logData)
+  }
+}
+
+module.exports = logger

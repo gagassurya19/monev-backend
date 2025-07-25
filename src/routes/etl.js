@@ -1,21 +1,7 @@
-const etlController = require('../controllers/etlController');
-const validators = require('../validators/etlValidators');
+const etlController = require('../controllers/etlController')
+const validators = require('../validators/etlValidators')
 
 const routes = [
-  {
-    method: 'POST',
-    path: '/etl/run',
-    handler: etlController.triggerETL,
-    options: {
-      description: 'Manually trigger ETL process',
-      notes: 'Manually trigger the ETL process to extract, transform, and load data from Moodle',
-      tags: ['api', 'etl'],
-      validate: {
-        query: validators.etlQuerySchema
-      },
-      auth: 'webhook',
-    }
-  },
   {
     method: 'GET',
     path: '/etl/status',
@@ -25,11 +11,25 @@ const routes = [
       notes: 'Get the current status and information about ETL processes',
       tags: ['api', 'etl'],
       validate: {
-        query: validators.etlQuerySchema
+        query: validators.tokenQuerySchema
       },
-      auth: 'webhook'
+      auth: 'jwt'
+    }
+  },
+  {
+    method: 'POST',
+    path: '/etl/run',
+    handler: etlController.triggerETL,
+    options: {
+      description: 'Manually trigger ETL process',
+      notes: 'Manually trigger the ETL process to extract, transform, and load data from Moodle',
+      tags: ['api', 'etl'],
+      validate: {
+        query: validators.tokenQuerySchema
+      },
+      auth: 'jwt'
     }
   }
-];
+]
 
-module.exports = routes; 
+module.exports = routes

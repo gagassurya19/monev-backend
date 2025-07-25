@@ -1,104 +1,108 @@
-const logController = require('../controllers/logController');
-const validators = require('../validators/logValidators');
-const Joi = require('joi');
+const logController = require('../controllers/logController')
+const validators = require('../validators/logValidators')
 
 const routes = [
   {
-    method: 'POST',
-    path: '/logs',
-    handler: logController.createLog,
-    options: {
-      description: 'Create a new log entry',
-      notes: 'Creates a new log entry in the system with the provided data',
-      tags: ['api', 'logs'],
-      validate: {
-        payload: validators.createLogSchema
-      },
-
-      auth: 'webhook'
-    }
-  },
-  {
     method: 'GET',
     path: '/logs',
-    handler: logController.getAllLogs,
+    handler: logController.getLogs,
     options: {
-      description: 'Get all logs with filtering and pagination',
-      notes: 'Retrieves a paginated list of logs with optional filtering by level, source, user ID, and date range',
+      description: 'Get logs with filtering and pagination',
+      notes: 'Retrieve logs with optional filtering by user, course, action, etc.',
       tags: ['api', 'logs'],
       validate: {
         query: validators.getLogsQuerySchema
       },
-
-      auth: 'webhook'
+      auth: 'jwt'
     }
   },
   {
     method: 'GET',
-    path: '/logs/{id}',
-    handler: logController.getLogById,
+    path: '/logs/summary',
+    handler: logController.getLogsSummary,
     options: {
-      description: 'Get log by ID',
+      description: 'Get logs summary statistics',
+      notes: 'Get aggregated statistics about logs',
       tags: ['api', 'logs'],
       validate: {
-        params: validators.logIdParamSchema
+        query: validators.summaryQuerySchema
       },
-      auth: 'webhook'
-    }
-  },
-  {
-    method: 'PUT',
-    path: '/logs/{id}',
-    handler: logController.updateLog,
-    options: {
-      description: 'Update log entry',
-      tags: ['api', 'logs'],
-      validate: {
-        params: validators.logIdParamSchema,
-        payload: validators.updateLogSchema
-      },
-      auth: 'webhook'
-    }
-  },
-  {
-    method: 'DELETE',
-    path: '/logs/{id}',
-    handler: logController.deleteLog,
-    options: {
-      description: 'Delete log entry',
-      tags: ['api', 'logs'],
-      validate: {
-        params: validators.logIdParamSchema
-      },
-      auth: 'webhook'
+      auth: 'jwt'
     }
   },
   {
     method: 'GET',
-    path: '/logs/search',
-    handler: logController.searchLogs,
+    path: '/logs/user/{userId}',
+    handler: logController.getUserLogs,
     options: {
-      description: 'Search logs with advanced filters',
+      description: 'Get logs for specific user',
+      notes: 'Retrieve all logs for a specific user',
       tags: ['api', 'logs'],
       validate: {
-        query: validators.searchLogsQuerySchema
+        params: validators.userParamsSchema,
+        query: validators.userLogsQuerySchema
       },
-      auth: 'webhook'
+      auth: 'jwt'
     }
   },
   {
     method: 'GET',
-    path: '/logs/stats',
-    handler: logController.getLogStats,
+    path: '/logs/course/{courseId}',
+    handler: logController.getCourseLogs,
     options: {
-      description: 'Get log statistics',
+      description: 'Get logs for specific course',
+      notes: 'Retrieve all logs for a specific course',
       tags: ['api', 'logs'],
       validate: {
-        query: validators.logStatsQuerySchema
+        params: validators.courseParamsSchema,
+        query: validators.courseLogsQuerySchema
       },
-      auth: 'webhook'
+      auth: 'jwt'
+    }
+  },
+  {
+    method: 'GET',
+    path: '/logs/action/{action}',
+    handler: logController.getActionLogs,
+    options: {
+      description: 'Get logs for specific action',
+      notes: 'Retrieve all logs for a specific action type',
+      tags: ['api', 'logs'],
+      validate: {
+        params: validators.actionParamsSchema,
+        query: validators.actionLogsQuerySchema
+      },
+      auth: 'jwt'
+    }
+  },
+  {
+    method: 'GET',
+    path: '/logs/daterange',
+    handler: logController.getLogsByDateRange,
+    options: {
+      description: 'Get logs within date range',
+      notes: 'Retrieve logs within a specific date range',
+      tags: ['api', 'logs'],
+      validate: {
+        query: validators.dateRangeQuerySchema
+      },
+      auth: 'jwt'
+    }
+  },
+  {
+    method: 'GET',
+    path: '/logs/export',
+    handler: logController.exportLogs,
+    options: {
+      description: 'Export logs to CSV',
+      notes: 'Export filtered logs to CSV format',
+      tags: ['api', 'logs'],
+      validate: {
+        query: validators.exportQuerySchema
+      },
+      auth: 'jwt'
     }
   }
-];
+]
 
-module.exports = routes; 
+module.exports = routes

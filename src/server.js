@@ -1,15 +1,24 @@
-const Hapi = require('@hapi/hapi');
-const config = require('../config');
-const logger = require('./utils/logger');
-const database = require('./database/connection');
-const routes = require('./routes');
-const cronService = require('./services/cronService');
+const Hapi = require('@hapi/hapi')
+const config = require('../config')
+const logger = require('./utils/logger')
+const database = require('./database/connection')
+const routes = require('./routes')
+const cronService = require('./services/cronService')
 
 const init = async () => {
   // Create Hapi server instance
   const server = Hapi.server({
     port: config.server.port,
     host: config.server.host,
+    state: {
+      strictHeader: false, // Allow malformed cookies to be ignored instead of causing errors
+      ignoreErrors: true, // Ignore cookie parsing errors
+      clearInvalid: true, // Automatically clear invalid cookies
+      encoding: 'base64json',
+      isSecure: false, // Set to true in production with HTTPS
+      isHttpOnly: true,
+      isSameSite: 'Lax'
+    },
     routes: {
       cors: {
         origin: ['*'], // Configure based on your needs
@@ -21,12 +30,12 @@ const init = async () => {
       },
       validate: {
         failAction: async (request, h, err) => {
-          logger.error('Validation error:', err.message);
-          throw err;
+          logger.error('Validation error:', err.message)
+          throw err
         }
       }
     }
-  });
+  })
 
   // Register plugins
   await server.register([
@@ -36,65 +45,65 @@ const init = async () => {
       plugin: require('hapi-swagger'),
       options: require('../config/swagger')
     }
-  ]);
+  ])
 
-  // Register authentication scheme
-  const authMiddleware = require('./middlewares/auth');
-  server.auth.scheme(authMiddleware.name, authMiddleware.implementation);
-  server.auth.strategy('webhook', authMiddleware.name);
+  // Register JWT authentication scheme
+  const authMiddleware = require('./middlewares/auth')
+  server.auth.scheme(authMiddleware.name, authMiddleware.implementation)
+  server.auth.strategy('jwt', authMiddleware.name)
 
   // Register routes
-  server.route(routes);
+  server.route(routes)
 
   // Add global error handling
   server.ext('onPreResponse', (request, h) => {
-    const response = request.response;
-    
+    const response = request.response
+
     if (response.isBoom) {
       logger.error('Request error:', {
         statusCode: response.output.statusCode,
         error: response.message,
         path: request.path,
         method: request.method
-      });
+      })
     }
-    
-    return h.continue;
-  });
+
+    return h.continue
+  })
 
   // Initialize database connection
   try {
-    await database.testConnection();
-    logger.info('Database connection established successfully');
+    await database.testConnection()
+    logger.info('Database connection established successfully')
   } catch (error) {
-    logger.error('Database connection failed:', error.message);
-    process.exit(1);
+    logger.error('Database connection failed:', error.message)
+    process.exit(1)
   }
 
   // Start the server
-  await server.start();
-  logger.info(`Server running on ${server.info.uri}`);
-  
+  await server.start()
+  logger.info(`Server running on ${server.info.uri}`)
+
   // Initialize and start cron jobs
-  cronService.initialize();
-  cronService.start();
-  
-  return server;
-};
+  cronService.initialize()
+  cronService.start()
+
+  return server
+}
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
-  logger.error('Unhandled rejection:', err);
-  process.exit(1);
-});
+  logger.error('Unhandled rejection:', err)
+  process.exit(1)
+})
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  logger.info('Received SIGINT, shutting down gracefully');
-  cronService.stop();
-  cronService.destroy();
-  await database.closeConnection();
-  process.exit(0);
-});
+  logger.info('Received SIGINT, shutting down gracefully')
+  cronService.stop()
+  cronService.destroy()
+  await database.closeConnection()
+  process.exit(0)
+})
 
-init(); 
+init()

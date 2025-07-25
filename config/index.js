@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const config = {
   server: {
-    port: process.env.PORT || 3000,
+    port: process.env.PORT || 3001,
     host: process.env.HOST || 'localhost',
     env: process.env.NODE_ENV || 'development'
   },
@@ -20,7 +20,7 @@ const config = {
   },
   
   jwt: {
-    secret: process.env.JWT_SECRET || 'fallback-secret-change-this',
+    secret: process.env.JWT_SECRET || 'SECRET123',
     expiresIn: process.env.JWT_EXPIRES_IN || '24h'
   },
   
@@ -35,13 +35,6 @@ const config = {
   
   api: {
     prefix: process.env.API_PREFIX || '/api/v1'
-  },
-  
-  webhooks: {
-    // Store webhook tokens as comma-separated values in env
-    tokens: process.env.WEBHOOK_TOKENS ? 
-      process.env.WEBHOOK_TOKENS.split(',').map(t => t.trim()) : 
-      ['default-webhook-token-change-this']
   }
 };
 

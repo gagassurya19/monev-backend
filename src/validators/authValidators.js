@@ -1,4 +1,4 @@
-const Joi = require('joi');
+const Joi = require('joi')
 
 const authValidators = {
   tokenQuerySchema: Joi.object({
@@ -12,6 +12,6 @@ const authValidators = {
       .required()
       .description('Webhook token')
   })
-};
+}
 
-module.exports = authValidators; 
+module.exports = authValidators

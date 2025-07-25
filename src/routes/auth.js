@@ -1,46 +1,43 @@
-const authController = require('../controllers/authController');
-const validators = require('../validators/authValidators');
-const Joi = require('joi');
+const authController = require('../controllers/authController')
+const validators = require('../validators/authValidators')
+const Joi = require('joi')
 
 const routes = [
   {
-    method: 'GET',
+    method: 'POST',
     path: '/auth/validate',
     handler: authController.validateToken,
     options: {
-      description: 'Validate webhook token',
-      notes: 'Validates a webhook token provided via query parameter. demo-token: test-webhook-token',
+      description: 'Validate JWT token',
+      notes: 'Validates a JWT token with platform-compatible payload structure',
       tags: ['api', 'auth'],
       validate: {
-        query: validators.tokenQuerySchema
+        payload: validators.tokenPayloadSchema
       },
-
       auth: false
     }
   },
-  // {
-  //   method: 'POST',
-  //   path: '/auth/validate',
-  //   handler: authController.validateToken,
-  //   options: {
-  //     description: 'Validate webhook token (POST)',
-  //     tags: ['api', 'auth'],
-  //     validate: {
-  //       payload: validators.tokenPayloadSchema
-  //     },
-  //     auth: false
-  //   }
-  // },
-  // {
-  //   method: 'GET',
-  //   path: '/auth/webhook',
-  //   handler: authController.getCurrentWebhook,
-  //   options: {
-  //     description: 'Get current webhook information',
-  //     tags: ['api', 'auth'],
-  //     auth: 'webhook'
-  //   }
-  // }
-];
+  {
+    method: 'POST',
+    path: '/auth/generate-token',
+    handler: authController.generateToken,
+    options: {
+      description: 'Generate a new JWT token',
+      notes: 'Generates a new JWT token with platform-compatible payload structure',
+      tags: ['api', 'auth'],
+      validate: {
+        payload: Joi.object({
+          sub: Joi.string().default('test-user'),
+          name: Joi.string().default('Test User'),
+          kampus: Joi.string().default(''),
+          fakultas: Joi.string().default(''),
+          prodi: Joi.string().default(''),
+          admin: Joi.boolean().default(false)
+        }).optional()
+      },
+      auth: false
+    }
+  }
+]
 
-module.exports = routes; 
+module.exports = routes
