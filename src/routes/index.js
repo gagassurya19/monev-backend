@@ -1,8 +1,8 @@
 const config = require('../../config')
 const healthRoutes = require('./health')
 const authRoutes = require('./auth')
-const logRoutes = require('./logs')
 const etlRoutes = require('./etl')
+const coursePerformanceRoutes = require('./course-performance')
 
 // Combine all routes
 const routes = [
@@ -15,12 +15,12 @@ const routes = [
     path: `${config.api.prefix}${route.path}`
   })),
 
-  // ...logRoutes.map(route => ({
-  //   ...route,
-  //   path: `${config.api.prefix}${route.path}`
-  // })),
-
   ...etlRoutes.map(route => ({
+    ...route,
+    path: `${config.api.prefix}${route.path}`
+  })),
+
+  ...coursePerformanceRoutes.map(route => ({
     ...route,
     path: `${config.api.prefix}${route.path}`
   }))

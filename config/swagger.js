@@ -1,8 +1,8 @@
 const swaggerOptions = {
   info: {
-    title: 'Celoe Logs Backend API',
+    title: 'MONEV API',
     version: '1.0.0',
-    description: 'API for logging system with JWT authentication'
+    description: 'API for MONEV'
   },
   documentationPath: '/docs',
   jsonPath: '/swagger.json',

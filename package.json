@@ -1,5 +1,5 @@
 {
-  "name": "celoe-logs-backend",
+  "name": "monev-backend",
   "version": "1.0.0",
   "description": "Corporate-standard HAPI.js backend with MySQL",
   "main": "src/server.js",

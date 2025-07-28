@@ -9,7 +9,7 @@ const healthController = {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        service: 'celoe-logs-backend'
+        service: 'monev-backend'
       }).code(200)
     } catch (error) {
       logger.error('Health check failed:', error.message)
@@ -27,7 +27,7 @@ const healthController = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      service: 'celoe-logs-backend',
+      service: 'monev-backend',
       version: process.env.npm_package_version || '1.0.0',
       environment: process.env.NODE_ENV || 'development',
       checks: {}

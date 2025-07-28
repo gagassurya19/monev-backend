@@ -27,7 +27,7 @@ const logFormat = winston.format.combine(
 const logger = winston.createLogger({
   level: config.logging.level,
   format: logFormat,
-  defaultMeta: { service: 'celoe-logs-backend' },
+  defaultMeta: { service: 'monev-backend' },
   transports: [
     // Write all logs with level 'error' and below to error.log
     new winston.transports.File({

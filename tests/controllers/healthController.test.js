@@ -20,7 +20,7 @@ describe('Health Controller', () => {
       expect(mockResponseToolkit.response).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'healthy',
-          service: 'celoe-logs-backend'
+          service: 'monev-backend'
         })
       );
       expect(mockResponseToolkit.code).toHaveBeenCalledWith(200);
