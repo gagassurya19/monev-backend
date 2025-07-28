@@ -204,9 +204,11 @@ const detailActivity = {
       ? (stats.completed_count / stats.total_participants) * 100
       : 0;
 
+    console.log(stats)
+
     return {
       total_participants: stats.total_participants || 0,
-      average_score: stats.average_score ? Number(stats.average_score.toFixed(2)) : null,
+      average_score: stats.average_score ? Number(stats.average_score).toFixed(2) : null,
       completion_rate: Number(completionRate.toFixed(2)),
     };
   },
