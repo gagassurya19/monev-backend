@@ -1,11 +1,18 @@
 const Joi = require('joi')
 
 const etlValidators = {
-  etlQuerySchema: Joi.object({
+  etlTokenOnly: Joi.object({
     token: Joi.string()
       .required()
-      .description('Webhook authentication token')
-  })
+      .description('token auth')
+  }),
+  etlPagination: Joi.object({
+    token: Joi.string()
+      .required()
+      .description("token auth"),
+    limit: Joi.number(),
+    offset: Joi.number()
+  }),
 }
 
 module.exports = etlValidators

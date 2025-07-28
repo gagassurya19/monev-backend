@@ -1,6 +1,8 @@
 const mysql = require('mysql2/promise')
 const config = require('../../config')
 const logger = require('../utils/logger')
+const database = require('../database/connection')
+const { getETLHistory } = require('../controllers/etlController')
 
 const etlService = {
   // Main ETL function that runs all ETL operations
@@ -10,14 +12,7 @@ const etlService = {
       logger.info('Starting ETL process')
 
       // Create database connection
-      conn = await mysql.createConnection({
-        host: config.database.host,
-        port: config.database.port,
-        user: config.database.user,
-        password: config.database.password,
-        database: config.database.database,
-        multipleStatements: true
-      })
+      conn = database.getConnection()
 
       logger.info('Database connection established for ETL')
 
@@ -307,18 +302,102 @@ const etlService = {
 
   // Get ETL status and last run info
   getETLStatus: async () => {
+    let conn
     try {
-      // You can implement this to check the last ETL run from a status table
-      // For now, return basic status
+      logger.info("Running ETL status check");
+
+      // Get latest ETL run
+      const latestRunRows = await database.query(`
+        SELECT * FROM moodle_logs.log_scheduler ORDER BY id DESC LIMIT 1
+      `);
+      const lastRun = latestRunRows[0] || null;
+
+      // Check if any ETL job is currently running (status = 2)
+      const runningRows = await database.query(`
+        SELECT COUNT(*) as running_count FROM moodle_logs.log_scheduler WHERE status = 2
+      `);
+      const isRunning = runningRows[0]?.running_count > 0;
+
       return {
         status: 'active',
-        lastRun: null, // You can store this in a database table
+        lastRun: lastRun ? {
+          id: lastRun.id,
+          start_date: lastRun.start_date,
+          end_date: lastRun.end_date,
+          status: lastRun.status === 1 ? 'finished' : (lastRun.status === 2 ? 'inprogress' : 'failed'),
+          total_records: lastRun.numrow,
+          offset: lastRun.offset
+        } : null,
         nextRun: 'Every hour at minute 0',
-        isRunning: false
-      }
+        isRunning
+      };
     } catch (error) {
-      logger.error('Error getting ETL status:', error.message)
-      throw error
+      logger.error('Error getting ETL status:', error.message);
+      throw error;
+    }
+  },
+
+  getETLHistory: async (limit = 20, offset = 0) => {
+    try {
+      // Get total logs count
+    const [countResult] = await database.query(`
+      SELECT COUNT(*) as total FROM moodle_logs.log_scheduler
+    `);
+    const total = countResult?.total ?? countResult[0]?.total ?? 0;
+
+    // Get paginated logs
+    const rows = await database.query(`
+      SELECT * FROM moodle_logs.log_scheduler 
+      ORDER BY id DESC 
+      LIMIT ? OFFSET ?
+    `, [limit, offset]);
+
+    const logs = Array.isArray(rows) ? rows : (rows ? [rows] : []);
+
+      // Format logs
+      const formattedLogs = logs.map(log => {
+        let duration = null;
+        if (log.start_date && log.end_date) {
+          const start = new Date(log.start_date);
+          const end = new Date(log.end_date);
+          const diffMs = end - start;
+
+          const hours = String(Math.floor(diffMs / (1000 * 60 * 60))).padStart(2, '0');
+          const minutes = String(Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+          const seconds = String(Math.floor((diffMs % (1000 * 60)) / 1000)).padStart(2, '0');
+
+          duration = `${hours}:${minutes}:${seconds}`;
+        }
+
+        return {
+          id: log.id,
+          start_date: log.start_date,
+          end_date: log.end_date,
+          duration,
+          status: log.status === 1 ? 'finished' : (log.status === 2 ? 'inprogress' : 'failed'),
+          total_records: log.numrow,
+          offset: log.offset,
+          created_at: log.created_at ?? null
+        };
+      });
+
+      const currentPage = Math.floor(offset / limit) + 1;
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        logs: formattedLogs,
+        pagination: {
+          total,
+          limit,
+          offset,
+          current_page: currentPage,
+          total_pages: totalPages
+        }
+      };
+
+    } catch (error) {
+      logger.error('Error getting ETL logs:', error.message);
+      throw error;
     }
   }
 }
