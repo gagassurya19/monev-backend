@@ -27,11 +27,11 @@ const init = async () => {
         }
       },
       cors: {
-        origin: ['*'],
-        headers: ['Accept', 'Authorization', 'Content-Type', 'If-None-Match'],
+        origin: config.server.corsOrigins,
+        headers: ['Accept', 'Authorization', 'Content-Type', 'If-None-Match', 'Origin', 'X-Requested-With', 'cache-control', 'pragma'],
         exposedHeaders: ['WWW-Authenticate', 'Server-Authorization'],
         additionalExposedHeaders: ['X-Custom-Header'],
-        maxAge: 60,
+        maxAge: 86400,
         credentials: true
       }
     }
