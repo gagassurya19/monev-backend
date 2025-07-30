@@ -194,8 +194,34 @@ const coursePerformanceController = {
         error: error.message
       })
     }
-  }
+  },
 
+  // ETL
+
+  getStatusETLLastRun: async (request, h) => {
+    try {
+      return await coursePerformanceService.getStatusETLLastRun(request, h);
+    } catch (error) {
+      logger.error('Failed to get ETL status:', error.message);
+      return h.response({
+        status: false,
+        message: 'Failed to get ETL status',
+        error: error.message
+      }).code(500);
+    }
+  },
+  getHistoryETLRun: async (request, h) => {
+    try {
+      return await coursePerformanceService.getHistoryETLRun(request, h);
+    } catch (error) {
+      logger.error('Failed to get ETL history:', error.message);
+      return h.response({
+        status: false,
+        message: 'Failed to get ETL history',
+        error: error.message
+      }).code(500);
+    }
+  }
 }
 
 module.exports = coursePerformanceController

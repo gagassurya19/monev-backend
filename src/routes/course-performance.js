@@ -5,10 +5,10 @@ const validators = require('../validators/CPValidators')
 const routes = [
   {
     method: 'GET',
-    path: '/course-performance/courses',
+    path: '/courses',
     handler: coursePerformanceController.getCourse,
     options: {
-      description: 'Get course',
+      description: 'course-performance | Get course',
       notes: 'Get the course',
       tags: ['api', 'course-performance'],
       validate: {
@@ -19,10 +19,10 @@ const routes = [
   },
   {
     method: 'GET',
-    path: '/course-performance/{course_id}/activities',
+    path: '/{course_id}/activities',
     handler: coursePerformanceController.getCourseActivities,
     options: {
-        description: 'Get activities by course_id',
+        description: 'course-performance | Get activities by course_id',
         tags: ['api', 'course-performance'],
         validate: {
             params: Joi.object({
@@ -35,10 +35,10 @@ const routes = [
   },
   {
     method: 'GET',
-    path: '/course-performance/{course_id}/{activity_type}/{activity_id}',
+    path: '/{course_id}/{activity_type}/{activity_id}',
     handler: coursePerformanceController.getDetailActivity,
     options: {
-        description: 'Get detail activities student',
+        description: 'course-performance | Get detail activities student',
         tags: ['api', 'course-performance'],
         validate: {
             params: Joi.object({
@@ -48,6 +48,35 @@ const routes = [
             }),
             query: validators.cpGetDetailCourseActivitySchema
         }
+    }
+  },
+
+  // ETL
+
+  {
+    method: 'GET',
+    path: '/etl/status',
+    handler: coursePerformanceController.getStatusETLLastRun,
+    options: {
+      description: 'course-performance | Get ETL status',
+      tags: ['api', 'course-performance'],
+      validate: {
+        query: validators.etlTokenOnly
+      },
+      auth: 'jwt'
+    }
+  },
+  {
+    method: 'GET',
+    path: '/etl/history',
+    handler: coursePerformanceController.getHistoryETLRun,
+    options: {
+      description: 'course-performance | Get ETL history',
+      tags: ['api', 'course-performance'],
+      validate: {
+        query: validators.etlPagination
+      },
+      auth: 'jwt'
     }
   }
 ]

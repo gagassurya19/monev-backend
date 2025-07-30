@@ -5,7 +5,7 @@ const Joi = require('joi')
 const routes = [
   {
     method: 'POST',
-    path: '/auth/validate',
+    path: '/validate',
     handler: authController.validateToken,
     options: {
       description: 'Validate JWT token',
@@ -19,7 +19,7 @@ const routes = [
   },
   {
     method: 'POST',
-    path: '/auth/generate-token',
+    path: '/generate-token',
     handler: authController.generateToken,
     options: {
       description: 'Generate a new JWT token',

@@ -2,7 +2,6 @@ const mysql = require('mysql2/promise')
 const config = require('../../config')
 const logger = require('../utils/logger')
 const database = require('../database/connection')
-const { getETLHistory } = require('../controllers/etlController')
 
 const etlService = {
   // Main ETL function that runs all ETL operations

@@ -18,7 +18,7 @@ const routes = [
   },
   {
     method: 'GET', // GET /api/etl/status - Get ETL status
-    path: '/etl/logs/status',
+    path: '/etl/status',
     handler: etlController.getETLStatus,
     options: {
       description: 'Get ETL process status',
@@ -32,7 +32,7 @@ const routes = [
   },
   {
     method: 'GET', // GET /api/etl/logs - Get ETL logs history
-    path: '/etl/logs/history',
+    path: '/etl/history',
     handler: etlController.getETLHistory,
     options: {
       description: 'Get ETL logs history',

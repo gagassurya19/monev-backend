@@ -204,8 +204,6 @@ const detailActivity = {
       ? (stats.completed_count / stats.total_participants) * 100
       : 0;
 
-    console.log(stats)
-
     return {
       total_participants: stats.total_participants || 0,
       average_score: stats.average_score ? Number(stats.average_score).toFixed(2) : null,
@@ -323,8 +321,6 @@ const coursePerformanceService = {
   
     const rows = await database.query(baseQuery, params);
 
-    console.log(rows)
-  
     return {
       data: rows,
       total_count: totalCount
@@ -386,6 +382,122 @@ const coursePerformanceService = {
       total_count,
       course_info: courseInfo
     };
+  },
+  getStatusETLLastRun: async (request, h) => {
+    try {
+      const lastRunQuery = `
+        SELECT * FROM moodle_logs.log_scheduler 
+        ORDER BY id DESC 
+        LIMIT 1
+      `;
+      const lastRunResult = await database.query(lastRunQuery);
+      const lastRun = lastRunResult[0] || null;
+      
+      const runningQuery = `
+        SELECT COUNT(*) as running_count 
+        FROM moodle_logs.log_scheduler 
+        WHERE status = 2
+      `;
+      const runningResult = await database.query(runningQuery);
+      const isRunning = runningResult[0]?.running_count > 0;
+      
+      const response = {
+        status: 'active',
+        lastRun: lastRun ? {
+          id: lastRun.id,
+          start_date: lastRun.start_date,
+          end_date: lastRun.end_date,
+          status: lastRun.status === 1 ? 'finished' : (lastRun.status === 2 ? 'inprogress' : 'failed'),
+          total_records: lastRun.numrow,
+          offset: lastRun.offset
+        } : null,
+        nextRun: 'Every hour at minute 0',
+        isRunning: isRunning
+      };
+      
+      return h.response({
+        status: true,
+        data: response
+      }).code(200);
+      
+    } catch (error) {
+      logger.error('Error getting ETL status:', error.message);
+      return h.response({
+        status: false,
+        message: 'Failed to get ETL status',
+        error: error.message
+      }).code(500);
+    }
+  },
+  getHistoryETLRun: async (request, h) => {
+    try {
+      const { limit = 20, offset = 0 } = request.query;
+      
+      // Get total count
+      const countQuery = `
+        SELECT COUNT(*) as total FROM moodle_logs.log_scheduler
+      `;
+      const [countResult] = await database.query(countQuery);
+      const total = countResult?.total || 0;
+      
+      // Get logs with pagination
+      const logsQuery = `
+        SELECT * FROM moodle_logs.log_scheduler 
+        ORDER BY id DESC 
+        LIMIT ? OFFSET ?
+      `;
+      const logsResult = await database.query(logsQuery, [parseInt(limit), parseInt(offset)]);
+      const logs = logsResult || [];
+      
+      // Format logs
+      const formattedLogs = [];
+      for (const log of logs) {
+        let duration = null;
+        if (log.start_date && log.end_date) {
+          const start = new Date(log.start_date);
+          const end = new Date(log.end_date);
+          const diffMs = end - start;
+          const diffHrs = Math.floor(diffMs / 3600000);
+          const diffMins = Math.floor((diffMs % 3600000) / 60000);
+          const diffSecs = Math.floor((diffMs % 60000) / 1000);
+          
+          duration = `${String(diffHrs).padStart(2, '0')}:${String(diffMins).padStart(2, '0')}:${String(diffSecs).padStart(2, '0')}`;
+        }
+        
+        formattedLogs.push({
+          id: log.id,
+          start_date: log.start_date,
+          end_date: log.end_date,
+          duration: duration,
+          status: log.status === 1 ? 'finished' : (log.status === 2 ? 'inprogress' : 'failed'),
+          total_records: log.numrow,
+          offset: log.offset,
+          created_at: log.created_at || null
+        });
+      }
+      
+      return h.response({
+        status: true,
+        data: {
+          logs: formattedLogs,
+          pagination: {
+            total: total,
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+            current_page: Math.floor(offset / limit) + 1,
+            total_pages: Math.ceil(total / limit)
+          }
+        }
+      }).code(200);
+      
+    } catch (error) {
+      logger.error('Error getting ETL history:', error.message);
+      return h.response({
+        status: false,
+        message: 'Failed to get ETL history',
+        error: error.message
+      }).code(500);
+    }
   },
   detailActivity
 }

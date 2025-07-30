@@ -2,9 +2,6 @@ const Joi = require('joi')
 
 const cpValidators = {
   cpGetCourseSchema: Joi.object({
-    token: Joi.string()
-      .required()
-      .description('Token'),
     page: Joi.number(),
     limit: Joi.number(),
     search: Joi.string(),
@@ -14,9 +11,6 @@ const cpValidators = {
     sort_order: Joi.string()
   }),
   cpGetCourseActivitiesSchema: Joi.object({
-    token: Joi.string()
-      .required()
-      .description('Token'),
     page: Joi.number(),
     limit: Joi.number(),
     activity_type: Joi.string(),
@@ -24,15 +18,17 @@ const cpValidators = {
     section: Joi.string()
   }),
   cpGetDetailCourseActivitySchema: Joi.object({
-    token: Joi.string()
-      .required()
-      .description('Token'),
     page: Joi.number(),
     limit: Joi.number(),
     search: Joi.string(),
     program_studi: Joi.string(),
     sort_by: Joi.string(),
     sort_order: Joi.string()
+  }),
+  etlTokenOnly: Joi.object({}),
+  etlPagination: Joi.object({
+    page: Joi.number(),
+    limit: Joi.number()
   })
 }
 
