@@ -20,19 +20,19 @@ const init = async () => {
       isSameSite: 'Lax'
     },
     routes: {
-      cors: {
-        origin: ['*'], // Configure based on your needs
-        headers: ['Accept', 'Authorization', 'Content-Type', 'If-None-Match'],
-        exposedHeaders: ['WWW-Authenticate', 'Server-Authorization'],
-        additionalExposedHeaders: ['X-Custom-Header'],
-        maxAge: 60,
-        credentials: true
-      },
       validate: {
         failAction: async (request, h, err) => {
           logger.error('Validation error:', err.message)
           throw err
         }
+      },
+      cors: {
+        origin: ['*'],
+        headers: ['Accept', 'Authorization', 'Content-Type', 'If-None-Match'],
+        exposedHeaders: ['WWW-Authenticate', 'Server-Authorization'],
+        additionalExposedHeaders: ['X-Custom-Header'],
+        maxAge: 60,
+        credentials: true
       }
     }
   })
@@ -46,6 +46,21 @@ const init = async () => {
       options: require('../config/swagger')
     }
   ])
+
+  // Configure CORS using built-in HAPI options
+  server.route({
+    method: 'OPTIONS',
+    path: '/{p*}',
+    handler: (request, h) => {
+      return h.response()
+        .header('Access-Control-Allow-Origin', '*')
+        .header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        .header('Access-Control-Allow-Headers', 'Accept, Authorization, Content-Type, If-None-Match, Origin, X-Requested-With')
+        .header('Access-Control-Allow-Credentials', 'true')
+        .header('Access-Control-Max-Age', '86400')
+        .code(200)
+    }
+  })
 
   // Register JWT authentication scheme
   const authMiddleware = require('./middlewares/auth')
