@@ -54,11 +54,18 @@ const init = async () => {
     handler: (request, h) => {
       return h.response()
         .header('Access-Control-Allow-Origin', '*')
-        .header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-        .header('Access-Control-Allow-Headers', 'Accept, Authorization, Content-Type, If-None-Match, Origin, X-Requested-With')
+        .header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
+        .header('Access-Control-Allow-Headers', 'Accept, Authorization, Content-Type, If-None-Match, Origin, X-Requested-With, Cache-Control, Pragma, X-Forwarded-For, X-Forwarded-Proto')
         .header('Access-Control-Allow-Credentials', 'true')
         .header('Access-Control-Max-Age', '86400')
+        .header('Access-Control-Expose-Headers', 'WWW-Authenticate, Server-Authorization')
         .code(200)
+    },
+    options: {
+      auth: false, // Ensure OPTIONS requests bypass authentication
+      cors: {
+        origin: ['*']
+      }
     }
   })
 
@@ -98,6 +105,18 @@ const init = async () => {
   // Start the server
   await server.start()
   logger.info(`Server running on ${server.info.uri}`)
+  logger.info(`Server host: ${config.server.host}`)
+  logger.info(`Server port: ${config.server.port}`)
+  logger.info(`Server address: ${server.info.address}:${server.info.port}`)
+
+  // Log actual server binding
+  console.log('=== Server Debug Info ===')
+  console.log('Server URI:', server.info.uri)
+  console.log('Server Address:', server.info.address)
+  console.log('Server Port:', server.info.port)
+  console.log('Config Host:', config.server.host)
+  console.log('Config Port:', config.server.port)
+  console.log('========================')
 
   // Initialize and start cron jobs
   cronService.initialize()
