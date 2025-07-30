@@ -4,8 +4,8 @@ const swaggerOptions = {
     version: '1.0.0',
     description: 'API for MONEV'
   },
-  documentationPath: '/docs',
-  jsonPath: '/swagger.json',
+  documentationPath: '/api/docs',
+  jsonPath: '/api/swagger.json',
   securityDefinitions: {
     'Bearer': {
       type: 'apiKey',
