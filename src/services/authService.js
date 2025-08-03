@@ -1,5 +1,7 @@
 const config = require('../../config')
 const jwt = require('jsonwebtoken')
+const database = require('../database/connection')
+const bcrypt = require('bcrypt')
 
 const authService = {
   // Generate a JWT token
@@ -95,6 +97,34 @@ const authService = {
     }
 
     return authService.generateToken(finalPayload, '30d') // 30 days expiration
+  },
+
+  loginAdmin: async (username, password) => {
+    const user = await database.query(`
+      SELECT * FROM moodle_logs.user ua
+      WHERE ua.username = ?
+      `, [username])
+
+    if (user.length === 0) {
+      return false
+    }
+
+    // Compare the provided password with the stored hashed password
+    const isPasswordValid = await bcrypt.compare(password, user[0].password)
+    
+    if (!isPasswordValid) {
+      return false
+    }
+
+    const token = authService.generateJwtToken({
+      sub: user[0].username,
+      name: user[0].username,
+      admin: true
+    })
+
+    return {
+      token,
+    }
   }
 }
 

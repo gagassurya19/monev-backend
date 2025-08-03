@@ -86,6 +86,31 @@ const authController = {
       logger.error('Token generation failed:', error.message)
       throw Boom.badImplementation('Token generation failed')
     }
+  },
+
+  loginAdmin: async (request, h) => {
+    try {
+      const { username, password } = request.payload  
+
+      const loginResult = await authService.loginAdmin(username, password)
+
+      if (!loginResult) {
+        throw Boom.unauthorized('Invalid username or password')
+      }
+
+      return h.response({
+        status: true,
+        message: 'Admin login successful',
+        ...loginResult
+      }).code(200)
+    } catch (error) {
+      logger.error('Admin login failed:', error.message)
+      // If it's already a Boom error, re-throw it
+      if (error.isBoom) {
+        throw error
+      }
+      throw Boom.badImplementation('Admin login failed')
+    }
   }
 }
 

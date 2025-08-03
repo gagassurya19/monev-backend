@@ -17,9 +17,8 @@ class Database {
         password: config.database.password,
         database: config.database.database,
         connectionLimit: config.database.connectionLimit,
-        acquireTimeout: config.database.acquireTimeout,
-        timeout: config.database.timeout,
-        reconnect: config.database.reconnect,
+        waitForConnections: config.database.waitForConnections,
+        queueLimit: config.database.queueLimit,
         multipleStatements: false, // Security best practice
         ssl: false // Configure based on your MySQL setup
       })

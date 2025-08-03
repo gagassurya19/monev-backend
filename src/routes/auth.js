@@ -37,6 +37,23 @@ const routes = [
       },
       auth: false
     }
+  },
+  {
+    method: 'POST',
+    path: '/login-admin',
+    handler: authController.loginAdmin,
+    options: {
+      description: 'Login to the platform as admin',
+      notes: 'Logs in a admin to the platform',
+      tags: ['api', 'auth'],
+      validate: {
+        payload: Joi.object({
+          username: Joi.string().required(),
+          password: Joi.string().required()
+        })
+      },
+      auth: false
+    }
   }
 ]
 
