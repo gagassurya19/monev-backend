@@ -5,85 +5,183 @@ const database = require('../database/connection');
 const { getMatkulByProdi } = require('../controllers/student-activity-summary');
 
 const studentActivitySummaryService = {
-  getFakultas: async () => {
-    let resultData = {};
+  getFakultas: async (user_data, search, page = 1, limit = 20) => {
+    const { fakultas: tokenFakultas, admin } = user_data;
+    const offset = (page - 1) * limit;
+  
     try {
-      const resultFakultas = await database.query(`
-        SELECT category_id, category_name 
-        FROM moodle_logs.etl_chart_categories 
-        WHERE category_type = "FACULTY"`
-      );
-      resultData.fakultas = resultFakultas;
-      return resultData
-    } catch (error) {
-      console.log(error)
-      return {
-        status: false,
-        message: 'Failed to get filter by token',
-        error: error.message
+      let baseQuery = `FROM moodle_logs.etl_chart_categories WHERE category_type = 'FACULTY'`;
+      const conditions = [];
+      const params = [];
+  
+      if (admin && !tokenFakultas && !search) {
+        baseQuery = `FROM moodle_logs.etl_chart_categories WHERE category_type = 'FACULTY'`;
       }
-    }
-  },
+      
+      if (tokenFakultas) {
+        conditions.push(`category_id = ?`);
+        params.push(tokenFakultas);
+      }
+  
+      if (search) {
+        conditions.push(`category_name LIKE ?`);
+        params.push(`%${search}%`);
+      }
 
-  getProdiByFakultas: async (user_data, fakultas_option, kampus_option) => {
-    const { fakultas, kampus } = user_data;
-    let resultData = {};
-    try {
-      if (fakultas_option && kampus_option) {
-        const resultProdi = await database.query(`
-          SELECT category_id, category_name 
-          FROM moodle_logs.etl_chart_categories 
-          WHERE category_type = "STUDYPROGRAM" 
-          AND category_parent_id = ? 
-          AND category_site = ?`,
-          [fakultas_option, kampus_option]);
-        resultData.prodi = resultProdi;
-        return resultData
-      }
-      const resultProdi = await database.query(`
-        SELECT category_id, category_name 
-        FROM moodle_logs.etl_chart_categories 
-        WHERE category_type = "STUDYPROGRAM" 
-        AND category_parent_id = ? 
-        AND category_site = ?`,
-        [fakultas, kampus]);
-      resultData.prodi = resultProdi;
-      return resultData
+  
+      const whereClause = conditions.length ? ` AND ${conditions.join(' AND ')}` : '';
+  
+      const dataQuery = `SELECT category_id, category_name ${baseQuery}${whereClause} LIMIT ? OFFSET ?`;
+      const countQuery = `SELECT COUNT(*) as total ${baseQuery}${whereClause}`;
+  
+      const data = await database.query(dataQuery, [...params, limit, offset]);
+      const countResult = await database.query(countQuery, params);
+      const total = countResult[0]?.total || 0;
+  
+      return {
+        data,
+        page,
+        limit,
+        total,
+        hasNextPage: offset + data.length < total
+      };
+  
     } catch (error) {
-      console.log(error)
+      console.error(error);
       return {
         status: false,
-        message: 'Failed to get filter by token',
+        message: 'Failed to get fakultas data',
         error: error.message
-      }
+      };
     }
-  },
+  },  
 
-  getMatkulByProdi: async (user_data, prodi_option) => {
-    const { prodi } = user_data;
-    let resultData = {};
+  getProdiByFakultas: async (user_data, fakultas_option, kampus_option, search, page = 1, limit = 20) => {
+    const { fakultas: tokenFakultas, kampus: tokenKampus, prodi: tokenProdi, admin } = user_data;
+    const fakultas = tokenFakultas || fakultas_option || null;
+    const kampus = tokenKampus || kampus_option || null;
+    const offset = (page - 1) * limit;
+  
     try {
-      if (prodi_option) {
-        const resultMataKuliah = await database.query(`
-          SELECT * FROM moodle_logs.etl_chart_subjects 
-          WHERE category_id = ?`,
-          [prodi_option]);
-        resultData.mata_kuliah = resultMataKuliah;
-        return resultData
+      let baseQuery = `
+        FROM moodle_logs.etl_chart_categories 
+        WHERE category_type = 'STUDYPROGRAM'`;
+      const conditions = [];
+      const params = [];
+  
+      if (admin && !fakultas && !kampus && !tokenProdi && !search) {
+        baseQuery = `FROM moodle_logs.etl_chart_categories WHERE category_type = 'STUDYPROGRAM'`;
       }
-      const resultMataKuliah = await database.query(`
-        SELECT * FROM moodle_logs.etl_chart_subjects 
-        WHERE category_id = ?`,
-        [prodi]);
-      resultData.mata_kuliah = resultMataKuliah;
-      return resultData
+
+      if (tokenProdi) {
+        conditions.push(`category_id = ?`);
+        params.push(tokenProdi);
+      }
+  
+      if (fakultas) {
+        conditions.push(`category_parent_id = ?`);
+        params.push(fakultas);
+      }
+  
+      if (kampus) {
+        conditions.push(`category_site = ?`);
+        params.push(kampus);
+      }
+  
+      if (search) {
+        conditions.push(`category_name LIKE ?`);
+        params.push(`%${search}%`);
+      }
+  
+      if (admin && !fakultas && !kampus && !tokenProdi && !search) {
+        baseQuery = `FROM moodle_logs.etl_chart_categories WHERE category_type = 'STUDYPROGRAM'`;
+      }
+  
+      const whereClause = conditions.length ? ` AND ${conditions.join(' AND ')}` : '';
+  
+      const dataQuery = `SELECT category_id, category_name ${baseQuery}${whereClause} LIMIT ? OFFSET ?`;
+      const countQuery = `SELECT COUNT(*) as total ${baseQuery}${whereClause}`;
+  
+      const data = await database.query(dataQuery, [...params, limit, offset]);
+      const countResult = await database.query(countQuery, params);
+      const total = countResult[0]?.total || 0;
+  
+      return {
+        data,
+        page,
+        limit,
+        total,
+        hasNextPage: offset + data.length < total
+      };
+  
     } catch (error) {
-      console.log(error)
+      console.error(error);
       return {
         status: false,
-        message: 'Failed to get filter by token',
+        message: 'Failed to get prodi data',
         error: error.message
+      };
+    }
+  },  
+
+  getMatkulByProdi: async (user_data, prodi_option, search, page = 1, limit = 20) => {
+    const { prodi: tokenProdi, admin } = user_data;
+    const prodi = tokenProdi || prodi_option || null;
+    const offset = (page - 1) * limit;
+  
+    try {
+      let baseQuery = `FROM moodle_logs.etl_chart_subjects`;
+      const conditions = [];
+      const params = [];
+  
+      if (admin && !prodi && !search) {
+        const data = await database.query(`SELECT * ${baseQuery} LIMIT ? OFFSET ?`, [limit, offset]);
+        const totalResult = await database.query(`SELECT COUNT(*) as total ${baseQuery}`);
+        const total = totalResult[0]?.total || 0;
+  
+        return {
+          data,
+          page,
+          limit,
+          total,
+          hasNextPage: offset + data.length < total
+        };
       }
+  
+      if (prodi) {
+        conditions.push(`category_id = ?`);
+        params.push(prodi);
+      }
+  
+      if (search) {
+        conditions.push(`(subject_name LIKE ? OR subject_code LIKE ?)`);
+        params.push(`%${search}%`, `%${search}%`);
+      }
+  
+      const whereClause = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
+  
+      const dataQuery = `SELECT * ${baseQuery}${whereClause} LIMIT ? OFFSET ?`;
+      const countQuery = `SELECT COUNT(*) as total ${baseQuery}${whereClause}`;
+  
+      const data = await database.query(dataQuery, [...params, limit, offset]);
+      const totalResult = await database.query(countQuery, params);
+      const total = totalResult[0]?.total || 0;
+  
+      return {
+        data,
+        page,
+        limit,
+        total,
+        hasNextPage: offset + data.length < total
+      };
+  
+    } catch (error) {
+      console.error(error);
+      return {
+        status: false,
+        message: 'Failed to get mata kuliah data',
+        error: error.message
+      };
     }
   },
 

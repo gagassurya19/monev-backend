@@ -1,28 +1,17 @@
-const Boom = require('@hapi/boom')
 const studentActivitySummaryService = require('../services/student-activity-summary')
 const logger = require('../utils/logger');
-const authService = require('../services/authService');
 
 const studentActivitySummaryController = {
   getFakultas: async (request, h) => {
     try {
-      const { token } = request.query;
-
-      if (!token) {
-        return h.response({
-          status: false,
-          message: 'Token is required'
-        }).code(400);
-      }
-
-      const decodedToken = authService.validateToken(token);
-
-      const data = await studentActivitySummaryService.getFakultas();
+      const decodedToken = request.auth.credentials;
+      const { search } = request.query;
+      const data = await studentActivitySummaryService.getFakultas(decodedToken, search, request.query.page, request.query.limit);
 
       return h.response({
         status: true,
         dataUser: decodedToken,
-        data,
+        ...data,
       });
     } catch (err) {
       logger.error('Failed to get fakultas:', err.message);
@@ -35,23 +24,14 @@ const studentActivitySummaryController = {
   },
   getProdiByFakultas: async (request, h) => {
     try {
-      const { token, fakultas, kampus } = request.query;
-
-      if (!token) {
-        return h.response({
-          status: false,
-          message: 'Token is required'
-        }).code(400);
-      }
-
-      const decodedToken = authService.validateToken(token);
-
-      const data = await studentActivitySummaryService.getProdiByFakultas(decodedToken, fakultas, kampus);
+      const decodedToken = request.auth.credentials;
+      const { fakultas, kampus, search } = request.query;
+      const data = await studentActivitySummaryService.getProdiByFakultas(decodedToken, fakultas, kampus, search, request.query.page, request.query.limit);
 
       return h.response({
         status: true,
         dataUser: decodedToken,
-        data,
+        ...data,
       });
     } catch (err) {
       logger.error('Failed to get prodi by id_fakultas & kampus:', err.message);
@@ -64,23 +44,14 @@ const studentActivitySummaryController = {
   },
   getMatkulByProdi: async (request, h) => {
     try {
-      const { token, prodi } = request.query;
-
-      if (!token) {
-        return h.response({
-          status: false,
-          message: 'Token is required'
-        }).code(400);
-      }
-
-      const decodedToken = authService.validateToken(token);
-
-      const data = await studentActivitySummaryService.getMatkulByProdi(decodedToken, prodi);
+      const decodedToken = request.auth.credentials;
+      const { prodi, search } = request.query;
+      const data = await studentActivitySummaryService.getMatkulByProdi(decodedToken, prodi, search, request.query.page, request.query.limit);
 
       return h.response({
         status: true,
         dataUser: decodedToken,
-        data,
+        ...data,
       });
     } catch (err) {
       logger.error('Failed to get matakuliah with id_prodi:', err.message);
@@ -91,6 +62,9 @@ const studentActivitySummaryController = {
       }).code(500);
     }
   },
+
+  // ETL
+
   getStatusETLLastRun: async (request, h) => {
     try {
         return await studentActivitySummaryService.getStatusLastETLRun(request, h);

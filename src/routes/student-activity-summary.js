@@ -12,6 +12,9 @@ const routes = [
       validate: {
         query: Joi.object({
             // kampus: Joi.string().description('get fakultas with kampus: bdg | jkt | pwt | sby')
+            search: Joi.string().description('search fakultas'),
+            page: Joi.number().description('page number'),
+            limit: Joi.number().description('limit number')
         })
       },
       auth: 'jwt'
@@ -27,7 +30,10 @@ const routes = [
       validate: {
         query: Joi.object({
             fakultas: Joi.string().description('id_fakultas'),
-            kampus: Joi.string().description('kampus: bdg | jkt | pwt | sby')
+            kampus: Joi.string().description('kampus: bdg | jkt | pwt | sby'),
+            search: Joi.string().description('search prodi'),
+            page: Joi.number().description('page number'),
+            limit: Joi.number().description('limit number')
         })
       },
       auth: 'jwt'
@@ -42,7 +48,10 @@ const routes = [
       tags: ['api', 'student-activity-summary'],
       validate: {
         query: Joi.object({
-            prodi: Joi.string().description('id_prodi')
+            prodi: Joi.string().description('id_prodi'),
+            search: Joi.string().description('search matkul'),
+            page: Joi.number().description('page number'),
+            limit: Joi.number().description('limit number')
         })
       },
       auth: 'jwt'
