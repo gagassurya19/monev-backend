@@ -1,6 +1,7 @@
 const config = require('../../config')
 const jwt = require('jsonwebtoken')
 const database = require('../database/connection')
+const dbConfig = require('../../config/database')
 const bcrypt = require('bcrypt')
 
 const authService = {
@@ -101,7 +102,7 @@ const authService = {
 
   loginAdmin: async (username, password) => {
     const user = await database.query(`
-      SELECT * FROM moodle_logs.user ua
+      SELECT * FROM ${dbConfig.dbNames.main}.monev_users ua
       WHERE ua.username = ?
       `, [username])
 

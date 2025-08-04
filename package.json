@@ -10,7 +10,13 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix"
+    "lint:fix": "eslint src/ --fix",
+    "setup:db": "bash scripts/setup_database.sh",
+    "db:create": "mysql -u root -p < scripts/setup_database.sql",
+    "db:tables": "mysql -u monev_user -pmonev_password monev_db < scripts/create_monev_tables.sql",
+    "db:backup": "bash scripts/backup_database.sh",
+    "db:migrate": "mysql -u monev_user -pmonev_password monev_db < scripts/migrate_data.sql",
+    "db:test": "node scripts/test_connection.js"
   },
   "keywords": [
     "hapi",

@@ -8,17 +8,7 @@ const config = {
     corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:3001']
   },
   
-  database: {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT) || 8889,
-    database: process.env.DB_NAME || 'moodle_logs',
-    user: process.env.DB_USER || 'moodle',
-    password: process.env.DB_PASSWORD || 'moodle',
-    connectionLimit: 10,
-    // Removed incompatible MySQL2 options: acquireTimeout, timeout, reconnect
-    waitForConnections: true,
-    queueLimit: 0
-  },
+  database: require('./database'),
   
   jwt: {
     secret: process.env.JWT_SECRET || 'SECRET123',

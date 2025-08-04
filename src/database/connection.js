@@ -1,5 +1,5 @@
 const mysql = require('mysql2/promise')
-const config = require('../../config')
+const dbConfig = require('../../config/database')
 const logger = require('../utils/logger')
 
 class Database {
@@ -11,14 +11,16 @@ class Database {
   async init () {
     try {
       this.pool = mysql.createPool({
-        host: config.database.host,
-        port: config.database.port,
-        user: config.database.user,
-        password: config.database.password,
-        database: config.database.database,
-        connectionLimit: config.database.connectionLimit,
-        waitForConnections: config.database.waitForConnections,
-        queueLimit: config.database.queueLimit,
+        host: dbConfig.host,
+        port: dbConfig.port,
+        user: dbConfig.user,
+        password: dbConfig.password,
+        database: dbConfig.database,
+        connectionLimit: dbConfig.connectionLimit,
+        waitForConnections: dbConfig.waitForConnections,
+        queueLimit: dbConfig.queueLimit,
+        charset: dbConfig.charset,
+        collation: dbConfig.collation,
         multipleStatements: false, // Security best practice
         ssl: false // Configure based on your MySQL setup
       })

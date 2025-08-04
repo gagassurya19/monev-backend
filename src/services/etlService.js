@@ -2,6 +2,7 @@ const mysql = require('mysql2/promise')
 const config = require('../../config')
 const logger = require('../utils/logger')
 const database = require('../database/connection')
+const dbConfig = require('../../config/database')
 
 const etlService = {
   // Main ETL function that runs all ETL operations
@@ -307,13 +308,13 @@ const etlService = {
 
       // Get latest ETL run
       const latestRunRows = await database.query(`
-        SELECT * FROM moodle_logs.log_scheduler ORDER BY id DESC LIMIT 1
+        SELECT * FROM ${dbConfig.dbNames.main}.log_scheduler ORDER BY id DESC LIMIT 1
       `);
       const lastRun = latestRunRows[0] || null;
 
       // Check if any ETL job is currently running (status = 2)
       const runningRows = await database.query(`
-        SELECT COUNT(*) as running_count FROM moodle_logs.log_scheduler WHERE status = 2
+        SELECT COUNT(*) as running_count FROM ${dbConfig.dbNames.main}.log_scheduler WHERE status = 2
       `);
       const isRunning = runningRows[0]?.running_count > 0;
 
@@ -340,13 +341,13 @@ const etlService = {
     try {
       // Get total logs count
     const [countResult] = await database.query(`
-      SELECT COUNT(*) as total FROM moodle_logs.log_scheduler
+      SELECT COUNT(*) as total FROM ${dbConfig.dbNames.main}.log_scheduler
     `);
     const total = countResult?.total ?? countResult[0]?.total ?? 0;
 
     // Get paginated logs
     const rows = await database.query(`
-      SELECT * FROM moodle_logs.log_scheduler 
+      SELECT * FROM ${dbConfig.dbNames.main}.log_scheduler 
       ORDER BY id DESC 
       LIMIT ? OFFSET ?
     `, [limit, offset]);

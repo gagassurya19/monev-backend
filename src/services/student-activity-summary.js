@@ -2,23 +2,21 @@ const mysql = require('mysql2/promise')
 const config = require('../../config')
 const logger = require('../utils/logger');
 const database = require('../database/connection');
+const dbConfig = require('../../config/database');
 const { getMatkulByProdi } = require('../controllers/student-activity-summary');
 
 const studentActivitySummaryService = {
   getFakultas: async (user_data, search, page = 1, limit = 20) => {
     const { fakultas: tokenFakultas, admin } = user_data;
-    const offset = (page - 1) * limit;
+    const parsedLimit = Number(limit) || 20;
+    const parsedOffset = (Number(page) - 1) * parsedLimit;
   
     try {
-      let baseQuery = `FROM moodle_logs.etl_chart_categories WHERE category_type = 'FACULTY'`;
-      const conditions = [];
+      const baseTable = `${dbConfig.dbNames.main}.monev_sas_categories`;
+      const conditions = [`category_type = 'FACULTY'`];
       const params = [];
   
-      if (admin && !tokenFakultas && !search) {
-        baseQuery = `FROM moodle_logs.etl_chart_categories WHERE category_type = 'FACULTY'`;
-      }
-      
-      if (tokenFakultas) {
+      if (!admin && tokenFakultas) {
         conditions.push(`category_id = ?`);
         params.push(tokenFakultas);
       }
@@ -27,23 +25,32 @@ const studentActivitySummaryService = {
         conditions.push(`category_name LIKE ?`);
         params.push(`%${search}%`);
       }
-
   
-      const whereClause = conditions.length ? ` AND ${conditions.join(' AND ')}` : '';
+      const whereClause = `WHERE ${conditions.join(' AND ')}`;
   
-      const dataQuery = `SELECT category_id, category_name ${baseQuery}${whereClause} LIMIT ? OFFSET ?`;
-      const countQuery = `SELECT COUNT(*) as total ${baseQuery}${whereClause}`;
+      const dataQuery = `
+        SELECT category_id, category_name
+        FROM ${baseTable}
+        ${whereClause}
+        LIMIT ${parsedLimit} OFFSET ${parsedOffset}
+      `;
   
-      const data = await database.query(dataQuery, [...params, limit, offset]);
+      const countQuery = `
+        SELECT COUNT(*) as total
+        FROM ${baseTable}
+        ${whereClause}
+      `;
+  
+      const data = await database.query(dataQuery, params);
       const countResult = await database.query(countQuery, params);
       const total = countResult[0]?.total || 0;
   
       return {
         data,
         page,
-        limit,
+        limit: parsedLimit,
         total,
-        hasNextPage: offset + data.length < total
+        hasNextPage: parsedOffset + data.length < total
       };
   
     } catch (error) {
@@ -63,16 +70,10 @@ const studentActivitySummaryService = {
     const offset = (page - 1) * limit;
   
     try {
-      let baseQuery = `
-        FROM moodle_logs.etl_chart_categories 
-        WHERE category_type = 'STUDYPROGRAM'`;
+      let baseQuery = `FROM ${dbConfig.dbNames.main}.monev_sas_categories WHERE category_type = 'STUDYPROGRAM'`;
       const conditions = [];
       const params = [];
   
-      if (admin && !fakultas && !kampus && !tokenProdi && !search) {
-        baseQuery = `FROM moodle_logs.etl_chart_categories WHERE category_type = 'STUDYPROGRAM'`;
-      }
-
       if (tokenProdi) {
         conditions.push(`category_id = ?`);
         params.push(tokenProdi);
@@ -93,16 +94,12 @@ const studentActivitySummaryService = {
         params.push(`%${search}%`);
       }
   
-      if (admin && !fakultas && !kampus && !tokenProdi && !search) {
-        baseQuery = `FROM moodle_logs.etl_chart_categories WHERE category_type = 'STUDYPROGRAM'`;
-      }
-  
       const whereClause = conditions.length ? ` AND ${conditions.join(' AND ')}` : '';
   
-      const dataQuery = `SELECT category_id, category_name ${baseQuery}${whereClause} LIMIT ? OFFSET ?`;
+      const dataQuery = `SELECT category_id, category_name ${baseQuery}${whereClause} LIMIT ${limit} OFFSET ${offset}`;
       const countQuery = `SELECT COUNT(*) as total ${baseQuery}${whereClause}`;
   
-      const data = await database.query(dataQuery, [...params, limit, offset]);
+      const data = await database.query(dataQuery, params);
       const countResult = await database.query(countQuery, params);
       const total = countResult[0]?.total || 0;
   
@@ -130,23 +127,9 @@ const studentActivitySummaryService = {
     const offset = (page - 1) * limit;
   
     try {
-      let baseQuery = `FROM moodle_logs.etl_chart_subjects`;
+      let baseQuery = `FROM ${dbConfig.dbNames.main}.monev_sas_subjects`;
       const conditions = [];
       const params = [];
-  
-      if (admin && !prodi && !search) {
-        const data = await database.query(`SELECT * ${baseQuery} LIMIT ? OFFSET ?`, [limit, offset]);
-        const totalResult = await database.query(`SELECT COUNT(*) as total ${baseQuery}`);
-        const total = totalResult[0]?.total || 0;
-  
-        return {
-          data,
-          page,
-          limit,
-          total,
-          hasNextPage: offset + data.length < total
-        };
-      }
   
       if (prodi) {
         conditions.push(`category_id = ?`);
@@ -160,10 +143,10 @@ const studentActivitySummaryService = {
   
       const whereClause = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
   
-      const dataQuery = `SELECT * ${baseQuery}${whereClause} LIMIT ? OFFSET ?`;
+      const dataQuery = `SELECT * ${baseQuery}${whereClause} LIMIT ${limit} OFFSET ${offset}`;
       const countQuery = `SELECT COUNT(*) as total ${baseQuery}${whereClause}`;
   
-      const data = await database.query(dataQuery, [...params, limit, offset]);
+      const data = await database.query(dataQuery, params);
       const totalResult = await database.query(countQuery, params);
       const total = totalResult[0]?.total || 0;
   
@@ -183,14 +166,14 @@ const studentActivitySummaryService = {
         error: error.message
       };
     }
-  },
+  },  
 
   // ETL
 
   getStatusLastETLRun: async (request, h) => {
     try {
       const lastRunQuery = `
-        SELECT * FROM etl_chart_logs 
+        SELECT * FROM ${dbConfig.dbNames.main}.monev_sas_logs 
         ORDER BY end_date DESC 
         LIMIT 1
       `;
@@ -199,7 +182,7 @@ const studentActivitySummaryService = {
       
       const runningQuery = `
         SELECT COUNT(*) as running_count 
-        FROM etl_chart_logs 
+        FROM ${dbConfig.dbNames.main}.monev_sas_logs 
         WHERE status = 2
       `;
       const runningResult = await database.query(runningQuery);
@@ -238,13 +221,13 @@ const studentActivitySummaryService = {
     try {
       const data = await database.query(`
         SELECT id, start_date, end_date, duration, status, total_records, offset, created_at 
-        FROM etl_chart_logs 
+        FROM monev_sas_logs 
         ORDER BY id DESC 
         LIMIT ? OFFSET ?
       `, [limit, offset]);
 
       const [countRows] = await database.query(`
-        SELECT COUNT(*) as total FROM etl_chart_logs
+        SELECT COUNT(*) as total FROM monev_sas_logs
       `);
 
       const total = countRows.total;
