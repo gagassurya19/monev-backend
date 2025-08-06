@@ -171,9 +171,12 @@ CREATE TABLE IF NOT EXISTS monev_sas_subjects (
     -- FOREIGN KEY constraint dihapus untuk memungkinkan semua data masuk
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 12. monev_sas_fetch_logs table (for tracking fetch from api runs) - USED BY: student-activity-summary.js
-CREATE TABLE IF NOT EXISTS monev_sas_fetch_categories_subject_logs (
+-- 12. Universal SAS logs table (for tracking all ETL processes) - USED BY: logService.js, realtimeLogService.js
+-- This table replaces the specific monev_sas_fetch_categories_subject_logs table
+-- and can be used for all types of ETL processes
+CREATE TABLE IF NOT EXISTS monev_sas_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    type_run ENUM('fetch_category_subject', 'fetch_course_performance', 'fetch_student_activity_summary') NOT NULL,
     start_date DATETIME,
     end_date DATETIME,
     duration VARCHAR(20),
@@ -182,12 +185,41 @@ CREATE TABLE IF NOT EXISTS monev_sas_fetch_categories_subject_logs (
     offset INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_status (status),
-    INDEX idx_start_date (start_date)
+    INDEX idx_start_date (start_date),
+    INDEX idx_type_run (type_run),
+    INDEX idx_type_status (type_run, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 13. Universal SAS realtime logs table - USED BY: realtimeLogService.js
+-- This table stores realtime logs for all ETL processes
+CREATE TABLE IF NOT EXISTS monev_sas_realtime_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    log_id INT NOT NULL,
+    level ENUM('info', 'warning', 'error', 'debug', 'progress') NOT NULL,
+    message TEXT,
+    progress INT,
+    data JSON,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_log_id (log_id),
+    INDEX idx_level (level),
+    INDEX idx_timestamp (timestamp),
+    FOREIGN KEY (log_id) REFERENCES monev_sas_logs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Show monev_db tables
 SELECT 'monev_db' as database_name, TABLE_NAME as table_name FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'monev_db';
 
+-- =====================================================
+-- TABLE STRUCTURES AND INDEXES
+-- =====================================================
+
+-- Show universal logs table structure
+DESCRIBE monev_sas_logs;
+DESCRIBE monev_sas_realtime_logs;
+
+-- Show indexes for universal logs tables
+SHOW INDEX FROM monev_sas_logs;
+SHOW INDEX FROM monev_sas_realtime_logs;
 
 -- =====================================================
 -- SUMMARY
