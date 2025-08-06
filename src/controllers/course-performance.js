@@ -1,5 +1,5 @@
 const Boom = require('@hapi/boom')
-const coursePerformanceService = require('../services/course-performance')
+const { CoursePerformanceService } = require('../services')
 const logger = require('../utils/logger');
 const database = require('../database/connection');
 
@@ -22,7 +22,7 @@ const coursePerformanceController = {
         offset: ((parseInt(query.page) || 1) - 1) * (parseInt(query.limit) || 10)
       };
 
-      const result = await coursePerformanceService.getCoursesWithFilters(filters, pagination);
+      const result = await CoursePerformanceService.getCoursesWithFilters(filters, pagination);
 
       return h.response({
         status: true,
@@ -81,7 +81,7 @@ const coursePerformanceController = {
       const offset = (currentPage - 1) * perPage;
 
       // Ambil data dari service
-      const result = await coursePerformanceService.getCourseActivities(course_id, filters, {
+      const result = await CoursePerformanceService.getCourseActivities(course_id, filters, {
         limit: perPage,
         offset
       });
@@ -164,19 +164,19 @@ const coursePerformanceController = {
         offset: (page - 1) * limit
       }
 
-      const info = await coursePerformanceService.detailActivity.getCourseActivityInfo(course_id, activity_type, activity_id);
+      const info = await CoursePerformanceService.detailActivity.getCourseActivityInfo(course_id, activity_type, activity_id);
 
       let students;
 
       switch (activity_type) {
         case 'quiz':
-          students = await coursePerformanceService.detailActivity.getQuizStudents(request, h, activity_id, filters, pagination);
+          students = await CoursePerformanceService.detailActivity.getQuizStudents(request, h, activity_id, filters, pagination);
           break;
         case 'assign':
-          students = await coursePerformanceService.detailActivity.getAssignmentStudents(request, h, activity_id, filters, pagination);
+          students = await CoursePerformanceService.detailActivity.getAssignmentStudents(request, h, activity_id, filters, pagination);
           break;
         case 'resource':
-          students = await coursePerformanceService.detailActivity.getResourceStudents(request, h, activity_id, filters, pagination);
+          students = await CoursePerformanceService.detailActivity.getResourceStudents(request, h, activity_id, filters, pagination);
           break;
         default:
           throw Boom.badRequest('Invalid activity type');
@@ -200,7 +200,7 @@ const coursePerformanceController = {
 
   getStatusETLLastRun: async (request, h) => {
     try {
-      return await coursePerformanceService.getStatusETLLastRun(request, h);
+      return await CoursePerformanceService.getStatusETLLastRun(request, h);
     } catch (error) {
       logger.error('Failed to get ETL status:', error.message);
       return h.response({
@@ -212,7 +212,7 @@ const coursePerformanceController = {
   },
   getHistoryETLRun: async (request, h) => {
     try {
-      return await coursePerformanceService.getHistoryETLRun(request, h);
+      return await CoursePerformanceService.getHistoryETLRun(request, h);
     } catch (error) {
       logger.error('Failed to get ETL history:', error.message);
       return h.response({

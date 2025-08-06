@@ -3,7 +3,6 @@ const config = require('../../config')
 const logger = require('../utils/logger');
 const database = require('../database/connection');
 const dbConfig = require('../../config/database');
-const { getMatkulByProdi } = require('../controllers/student-activity-summary');
 
 const studentActivitySummaryService = {
   getFakultas: async (user_data, search, page = 1, limit = 20) => {

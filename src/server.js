@@ -77,6 +77,25 @@ const init = async () => {
   // Register routes
   server.route(routes)
 
+  // Serve static files from public directory
+  server.route({
+    method: 'GET',
+    path: '/public/{param*}',
+    handler: {
+      directory: {
+        path: './public',
+        listing: false,
+        index: false
+      }
+    },
+    options: {
+      auth: false,
+      description: 'Serve static files from public directory',
+      notes: 'Serves HTML, CSS, JS, and other static files',
+      tags: ['static']
+    }
+  })
+
   // Add global error handling
   server.ext('onPreResponse', (request, h) => {
     const response = request.response

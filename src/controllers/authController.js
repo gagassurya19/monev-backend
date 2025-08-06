@@ -1,5 +1,5 @@
 const Boom = require('@hapi/boom')
-const authService = require('../services/authService')
+const { AuthService } = require('../services')
 const logger = require('../utils/logger')
 
 const authController = {
@@ -12,7 +12,7 @@ const authController = {
         throw Boom.badRequest('Token is required')
       }
 
-      const validationResult = authService.validateToken(token)
+      const validationResult = AuthService.validateToken(token)
 
       if (!validationResult) {
         logger.warn('Invalid token validation attempt', { token: `${token.substring(0, 10)}...` })
@@ -68,7 +68,7 @@ const authController = {
         ...payload
       }
 
-      const token = authService.generateJwtToken(tokenPayload)
+      const token = AuthService.generateJwtToken(tokenPayload)
 
       logger.info('JWT token generated successfully', {
         sub: tokenPayload.sub,
@@ -92,7 +92,7 @@ const authController = {
     try {
       const { username, password } = request.payload  
 
-      const loginResult = await authService.loginAdmin(username, password)
+      const loginResult = await AuthService.loginAdmin(username, password)
 
       if (!loginResult) {
         throw Boom.unauthorized('Invalid username or password')

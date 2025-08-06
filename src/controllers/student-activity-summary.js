@@ -1,4 +1,4 @@
-const studentActivitySummaryService = require('../services/student-activity-summary')
+const { StudentActivitySummaryService } = require('../services')
 const logger = require('../utils/logger');
 
 const studentActivitySummaryController = {
@@ -6,7 +6,7 @@ const studentActivitySummaryController = {
     try {
       const decodedToken = request.auth.credentials;
       const { search } = request.query;
-      const data = await studentActivitySummaryService.getFakultas(decodedToken, search, request.query.page, request.query.limit);
+      const data = await StudentActivitySummaryService.getFakultas(decodedToken, search, request.query.page, request.query.limit);
 
       return h.response({
         status: true,
@@ -26,7 +26,7 @@ const studentActivitySummaryController = {
     try {
       const decodedToken = request.auth.credentials;
       const { fakultas, kampus, search } = request.query;
-      const data = await studentActivitySummaryService.getProdiByFakultas(decodedToken, fakultas, kampus, search, request.query.page, request.query.limit);
+      const data = await StudentActivitySummaryService.getProdiByFakultas(decodedToken, fakultas, kampus, search, request.query.page, request.query.limit);
 
       return h.response({
         status: true,
@@ -46,7 +46,7 @@ const studentActivitySummaryController = {
     try {
       const decodedToken = request.auth.credentials;
       const { prodi, search } = request.query;
-      const data = await studentActivitySummaryService.getMatkulByProdi(decodedToken, prodi, search, request.query.page, request.query.limit);
+      const data = await StudentActivitySummaryService.getMatkulByProdi(decodedToken, prodi, search, request.query.page, request.query.limit);
 
       return h.response({
         status: true,
@@ -67,7 +67,7 @@ const studentActivitySummaryController = {
 
   getStatusETLLastRun: async (request, h) => {
     try {
-        return await studentActivitySummaryService.getStatusLastETLRun(request, h);
+        return await StudentActivitySummaryService.getStatusLastETLRun(request, h);
     } catch(error) {
         logger.error('Failed to get status last etl-chart:', err.message);
         return h.response({
@@ -80,7 +80,7 @@ const studentActivitySummaryController = {
   getHistoryETLRun: async (request, h) => {
     const { limit, offset } = request.query
     try {
-        const data = await studentActivitySummaryService.getHistoryETLRun(limit, offset)
+        const data = await StudentActivitySummaryService.getHistoryETLRun(limit, offset)
         return h.response({
             status: true,
             data

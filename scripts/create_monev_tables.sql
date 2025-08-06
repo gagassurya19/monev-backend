@@ -154,21 +154,21 @@ CREATE TABLE IF NOT EXISTS monev_sas_categories (
     category_type ENUM('FACULTY', 'STUDYPROGRAM', 'DEPARTMENT', 'OTHER') NOT NULL,
     category_parent_id INT DEFAULT NULL,
     INDEX idx_category_type (category_type),
-    INDEX idx_category_parent (category_parent_id),
-    FOREIGN KEY (category_parent_id) REFERENCES monev_sas_categories(category_id) ON DELETE SET NULL
+    INDEX idx_category_parent (category_parent_id)
+    -- FOREIGN KEY constraint dihapus untuk memungkinkan semua data masuk
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 11. monev_sas_subjects table - USED BY: student-activity-summary.js
 CREATE TABLE IF NOT EXISTS monev_sas_subjects (
     subject_id INT PRIMARY KEY,
-    subject_code VARCHAR(20) NOT NULL UNIQUE,
+    subject_code VARCHAR(20) NOT NULL, -- UNIQUE constraint dihapus
     subject_name VARCHAR(255) NOT NULL,
     curriculum_year YEAR NOT NULL,
     category_id INT NOT NULL,
     INDEX idx_subject_code (subject_code),
     INDEX idx_curriculum_year (curriculum_year),
-    INDEX idx_category_id (category_id),
-    FOREIGN KEY (category_id) REFERENCES monev_sas_categories(category_id) ON DELETE CASCADE
+    INDEX idx_category_id (category_id)
+    -- FOREIGN KEY constraint dihapus untuk memungkinkan semua data masuk
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 12. monev_sas_fetch_logs table (for tracking fetch from api runs) - USED BY: student-activity-summary.js

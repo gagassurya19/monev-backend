@@ -26,6 +26,21 @@ const config = {
   
   api: {
     prefix: process.env.API_PREFIX || '/api/v1'
+  },
+  
+  etl_sas_category_subject: {
+    endpoint: {
+      categories: process.env.CELOE_API_ENDPOINT_CATEGORIES || '/course/category',
+      subjects: process.env.CELOE_API_ENDPOINT_SUBJECTS || '/course/subject'
+    },
+    batchSize: parseInt(process.env.ETL_BATCH_SIZE) || 1000,
+    timeout: parseInt(process.env.ETL_TIMEOUT) || 1800000, // 30 minutes
+    retryAttempts: parseInt(process.env.ETL_RETRY_ATTEMPTS) || 3
+  },
+
+  celoeapi: {
+    baseUrl: process.env.CELOE_API_MOODLE_BASE_URL || 'http://localhost:8081',
+    prefix: process.env.CELOE_API_PREFIX || '/celoeapi'
   }
 };
 

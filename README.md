@@ -1,168 +1,302 @@
-# Monev Backend
+# CeLOE Logs Backend
 
-Sistem monitoring dan evaluasi (Monev) backend yang dibangun dengan Node.js, Hapi.js, dan MySQL.
+Backend service for CeLOE (Center for e-Learning and Open Education) monitoring system.
 
-## 🚀 Fitur
+## Features
 
-- **Authentication & Authorization**: JWT-based authentication dengan role-based access control
-- **Database Management**: MySQL database dengan connection pooling
+- **ETL Processing**: Extract, Transform, Load data from external APIs
+- **Real-time Logging**: Monitor ETL processes with live streaming
+- **Authentication**: JWT-based authentication
+- **Database**: MySQL with optimized queries
 - **API Documentation**: Swagger/OpenAPI documentation
-- **Logging**: Winston-based logging system
-- **Security**: Helmet.js untuk security headers
-- **CORS**: Cross-origin resource sharing support
-- **ETL Processing**: Data extraction, transformation, and loading
-- **Student Activity Monitoring**: Monitoring aktivitas mahasiswa
-- **Course Performance**: Analisis performa kursus
 
-## 📋 Prerequisites
+## Quick Start
 
-- Node.js >= 16.0.0
-- MySQL >= 8.0
-- npm atau yarn
+### Prerequisites
 
-## 🛠️ Installation
+- Node.js (v18 or higher)
+- MySQL (v8.0 or higher)
+- npm or yarn
 
-### 1. Clone Repository
+### Installation
+
+1. Clone the repository
 ```bash
 git clone <repository-url>
-cd monev-backend
+cd celoe-logs-backend
 ```
 
-### 2. Install Dependencies
+2. Install dependencies
 ```bash
 npm install
 ```
 
-### 3. Setup Environment
+3. Configure environment variables
 ```bash
 cp .env.example .env
-# Edit .env file dengan konfigurasi database Anda
+# Edit .env with your configuration
 ```
 
-### 4. Setup Database
-
-#### Option A: Menggunakan Script Otomatis
+4. Setup database
 ```bash
-npm run setup:db
+mysql -u root -p < scripts/setup_database.sql
 ```
 
-#### Option B: Manual Setup
+5. Start the server
 ```bash
-# Login ke MySQL sebagai root
-mysql -u root -p
-
-# Jalankan script setup database
-source scripts/setup_database.sql;
-
-# Buat tabel-tabel
-mysql -u monev_user -pmonev_password monev_db < scripts/create_monev_tables.sql
-```
-
-### 5. Start Application
-```bash
-# Development mode
-npm run dev
-
-# Production mode
 npm start
 ```
 
-## 🗄️ Database Schema
+## API Endpoints
 
-### Tables
-1. **users** - User authentication dan authorization
-2. **raw_log** - Raw log data dari sistem (updated schema)
-3. **course_activity_summary** - Ringkasan aktivitas kursus (updated schema)
-4. **student_profile** - Profil mahasiswa (updated schema)
-5. **student_quiz_detail** - Detail quiz mahasiswa (updated schema)
-6. **student_assignment_detail** - Detail assignment mahasiswa (updated schema)
-7. **student_resource_access** - Akses resource mahasiswa (updated schema)
-8. **course_summary** - Ringkasan kursus (updated schema)
-9. **log_scheduler** - Tracking ETL runs (new)
-10. **etl_status** - Additional ETL tracking (new)
-11. **etl_chart_categories** - Categories for ETL Chart (new)
-12. **etl_chart_subjects** - Subjects for ETL Chart (new)
-13. **etl_chart_logs** - Logs for ETL Chart (new)
-14. **system_logs** - Log sistem aplikasi
-15. **api_requests** - Monitoring API requests
+### Health Check
+```bash
+GET /health
+```
 
-## 🔧 Configuration
+### SAS ETL Endpoints
+
+#### 1. Run ETL Process
+```bash
+POST /api/v1/sas-etl/run
+Authorization: Bearer <jwt-token>
+```
+
+#### 2. Get ETL Logs History
+```bash
+GET /api/v1/sas-etl/logs?limit=5&offset=0
+Authorization: Bearer <jwt-token>
+```
+
+#### 3. Stream Realtime Logs (SSE)
+```bash
+GET /api/v1/sas-etl/logs/{log_id}/realtime
+Authorization: Bearer <jwt-token>
+Content-Type: text/event-stream
+```
+
+#### 4. Get Realtime Logs (REST)
+```bash
+GET /api/v1/sas-etl/logs/{log_id}/realtime-logs?limit=100&offset=0
+Authorization: Bearer <jwt-token>
+```
+
+## Real-time Monitoring
+
+### Web Interface
+
+Access the real-time monitoring interface at:
+```
+http://localhost:3001/public/realtime-logs-test.html
+```
+
+### JavaScript Example
+
+```javascript
+// Connect to realtime logs stream
+const eventSource = new EventSource('/api/v1/sas-etl/logs/123/realtime');
+
+eventSource.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    
+    switch(data.type) {
+        case 'connection':
+            console.log('Connected to stream');
+            break;
+        case 'log':
+            console.log(`[${data.level}] ${data.message}`);
+            updateProgress(data.progress);
+            break;
+        case 'completion':
+            console.log(`ETL completed with status: ${data.status}`);
+            eventSource.close();
+            break;
+        case 'error':
+            console.error(`Stream error: ${data.message}`);
+            break;
+    }
+};
+
+eventSource.onerror = function(event) {
+    console.error('EventSource failed');
+    eventSource.close();
+};
+```
+
+### cURL Example
+
+```bash
+# Stream realtime logs
+curl -N -H "Accept: text/event-stream" \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     http://localhost:3001/api/v1/sas-etl/logs/123/realtime
+
+# Get realtime logs (REST)
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     "http://localhost:3001/api/v1/sas-etl/logs/123/realtime-logs?limit=50&offset=0"
+```
+
+## Database Schema
+
+### ETL Logs
+```sql
+CREATE TABLE monev_sas_fetch_categories_subject_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    start_date DATETIME,
+    end_date DATETIME,
+    duration VARCHAR(20),
+    status VARCHAR(20),
+    total_records INT,
+    offset INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Realtime Logs
+```sql
+CREATE TABLE monev_sas_realtime_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    log_id INT NOT NULL,
+    timestamp DATETIME NOT NULL,
+    level ENUM('info', 'warning', 'error', 'debug') NOT NULL,
+    message TEXT NOT NULL,
+    progress DECIMAL(5,2) NULL,
+    INDEX idx_log_id (log_id),
+    INDEX idx_timestamp (timestamp)
+);
+```
+
+## Configuration
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | 3001 |
-| `HOST` | Server host | 0.0.0.0 |
-| `NODE_ENV` | Environment | development |
-| `DB_HOST` | Database host | localhost |
-| `DB_PORT` | Database port | 3306 |
-| `DB_NAME` | Database name | monev_db |
-| `DB_USER` | Database user | monev_user |
-| `DB_PASSWORD` | Database password | monev_password |
-| `JWT_SECRET` | JWT secret key | - |
-| `JWT_EXPIRES_IN` | JWT expiration | 24h |
+```bash
+# Server
+PORT=3001
+HOST=0.0.0.0
+NODE_ENV=development
 
-## 📚 API Documentation
+# Database
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=monev_db
 
-Setelah aplikasi berjalan, dokumentasi API tersedia di:
-- Swagger UI: `http://localhost:3001/api/v1/documentation`
-- JSON: `http://localhost:3001/api/v1/documentation.json`
+# JWT
+JWT_SECRET=your_secret_key
+JWT_EXPIRES_IN=24h
 
-## 🧪 Testing
+# API
+API_PREFIX=/api/v1
+CELOE_API_BASE_URL=https://celoe.telkomuniversity.ac.id/api/v1
+CELOE_API_KEY=your_api_key
+
+# ETL
+ETL_BATCH_SIZE=1000
+ETL_TIMEOUT=1800000
+ETL_RETRY_ATTEMPTS=3
+```
+
+## Development
+
+### Scripts
 
 ```bash
+# Start development server
+npm run dev
+
 # Run tests
 npm test
 
-# Run tests with coverage
-npm run test:coverage
+# Lint code
+npm run lint
 
-# Run tests in watch mode
-npm run test:watch
+# Build for production
+npm run build
 ```
 
-## 📝 Scripts
+### Project Structure
 
-| Script | Description |
-|--------|-------------|
-| `npm start` | Start production server |
-| `npm run dev` | Start development server |
-| `npm test` | Run tests |
-| `npm run setup:db` | Setup database otomatis |
-| `npm run db:create` | Create database manual |
-| `npm run db:tables` | Create tables manual |
-| `npm run lint` | Run ESLint |
-| `npm run lint:fix` | Fix ESLint issues |
+```
+src/
+├── controllers/          # Request handlers
+├── database/            # Database connection
+├── middlewares/         # Custom middlewares
+├── models/              # Data models
+├── routes/              # API routes
+├── services/            # Business logic
+├── utils/               # Utility functions
+├── validators/          # Request validation
+└── server.js           # Main server file
 
-## 🔒 Security
+public/                  # Static files
+├── realtime-logs-test.html
 
-- JWT-based authentication
-- Password hashing dengan bcrypt
-- Helmet.js untuk security headers
-- Input validation dengan Joi
-- SQL injection protection
-- CORS configuration
+docs/                   # Documentation
+├── REALTIME_LOGS_API.md
+└── ...
 
-## 📊 Monitoring
+scripts/                # Database scripts
+├── setup_database.sql
+└── ...
+```
 
-- Winston logging system
-- API request monitoring
-- Database connection monitoring
-- Error tracking
+## Monitoring
 
-## 🤝 Contributing
+### Log Files
 
-1. Fork repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+- Application logs: `logs/app.log`
+- Error logs: `logs/error.log`
+- Access logs: `logs/access.log`
 
-## 📄 License
+### Health Checks
 
-This project is licensed under the ISC License.
+```bash
+# Basic health check
+curl http://localhost:3001/health
 
-## 🆘 Support
+# Detailed health check
+curl http://localhost:3001/health/detailed
+```
 
-Untuk bantuan dan dukungan, silakan buat issue di repository ini. 
+## Troubleshooting
+
+### Common Issues
+
+1. **Database Connection Failed**
+   - Check MySQL service is running
+   - Verify database credentials in `.env`
+   - Ensure database exists
+
+2. **JWT Authentication Failed**
+   - Check JWT_SECRET is set
+   - Verify token format and expiration
+
+3. **ETL Process Fails**
+   - Check external API connectivity
+   - Verify API credentials
+   - Check database constraints
+
+4. **Streaming Connection Drops**
+   - Check network stability
+   - Verify server load
+   - Check client-side EventSource implementation
+
+### Debug Mode
+
+Enable debug logging by setting:
+```bash
+LOG_LEVEL=debug
+```
+
+## API Documentation
+
+For detailed API documentation, visit:
+```
+http://localhost:3001/documentation
+```
+
+## License
+
+This project is licensed under the MIT License. 
