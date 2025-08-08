@@ -4,7 +4,7 @@ const Joi = require('joi')
 const routes = [
   {
     method: 'GET',
-    path: '/health',
+    path: '/',
     handler: healthController.getHealth,
     options: {
       description: 'Health check endpoint',
@@ -16,7 +16,7 @@ const routes = [
   },
   {
     method: 'GET',
-    path: '/health/detailed',
+    path: '/detailed',
     handler: healthController.getDetailedHealth,
     options: {
       description: 'Detailed health check with database status',

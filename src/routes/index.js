@@ -10,7 +10,12 @@ const celoeApiRoutes = require('./celoe-api')
 // Combine all routes
 const routes = [
   // Health check routes (no prefix needed)
-  ...healthRoutes,
+  ...healthRoutes.map(route => {
+    return {
+      ...route,
+      path: `${config.api.prefix}/health${route.path}`
+    }
+  }),
 
   // API routes with prefix
   ...authRoutes.map(route => ({
