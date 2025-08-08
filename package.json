@@ -15,12 +15,7 @@
     "db:create": "mysql -u root -p < scripts/setup_database.sql",
     "db:tables": "mysql -u monev_user -pmonev_password monev_db < scripts/create_monev_tables.sql",
     "db:backup": "bash scripts/backup_database.sh",
-    "db:migrate": "mysql -u monev_user -pmonev_password monev_db < scripts/migrate_data.sql",
-    "db:test": "node scripts/test_connection.js",
-    "test:sas-etl": "node scripts/test-sas-etl.js",
-    "test:sas-etl-api": "node scripts/test-sas-etl-api.js",
-    "test:sas-etl-auth": "node scripts/test-sas-etl-with-auth.js",
-    "test:celoe-api": "node scripts/test-celoe-api-proxy.js"
+    "db:migrate": "mysql -u monev_user -pmonev_password monev_db < scripts/migrate_data.sql"
   },
   "keywords": [
     "hapi",

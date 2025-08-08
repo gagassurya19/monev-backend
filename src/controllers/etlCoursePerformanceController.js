@@ -1,5 +1,5 @@
 const Boom = require('@hapi/boom')
-const { EtlService } = require('../services')
+const { EtlCoursePerformanceService } = require('../services')
 const logger = require('../utils/logger')
 const database = require('../database/connection')
 
@@ -11,7 +11,7 @@ const etlCoursePerformanceController = {
         webhookToken: request.auth.credentials.token
       })
 
-      const result = await EtlService.runETL()
+      const result = await EtlCoursePerformanceService.runETL()
 
       return h.response({
         message: 'ETL process completed successfully',
@@ -27,7 +27,7 @@ const etlCoursePerformanceController = {
   // Get ETL status
   getETLStatus: async (request, h) => {
     try {
-      const status = await EtlService.getETLStatus()
+      const status = await EtlCoursePerformanceService.getETLStatus()
 
       return h.response({
         status
@@ -44,7 +44,7 @@ const etlCoursePerformanceController = {
       logger.info('Get log history')
 
       const { limit, offset } = request.query;
-      const result = await EtlService.getETLHistory(limit, offset)
+      const result = await EtlCoursePerformanceService.getETLHistory(limit, offset)
 
       return h.response({
         status: true,
@@ -66,7 +66,7 @@ const etlCoursePerformanceController = {
     try {
       logger.info('Testing API connection requested')
 
-      const result = await EtlService.testAPIConnection()
+      const result = await EtlCoursePerformanceService.testAPIConnection()
 
       return h.response({
         status: true,

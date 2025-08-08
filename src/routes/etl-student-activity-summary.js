@@ -18,7 +18,7 @@ const validators = {
 const routes = [
     {
         method: 'POST',
-        path: '/sas-etl/category-subject/run',
+        path: '/category-subject/run',
         handler: sasEtlController.triggerSASCategorySubjectETL,
         options: {
             description: 'Run SAS ETL process in background',
@@ -29,7 +29,7 @@ const routes = [
     },
     {
         method: 'GET',
-        path: '/sas-etl/category-subject/logs',
+        path: '/category-subject/logs',
         handler: sasEtlController.getSASCategorySubjectLogs,
         options: {
             description: 'Get SAS ETL logs history',
@@ -43,7 +43,7 @@ const routes = [
     },
     {
         method: 'GET',
-        path: '/sas-etl/logs/{log_id}/realtime',
+        path: '/logs/{log_id}/realtime',
         handler: sasEtlController.streamRealtimeCategorySubjectLogs,
         options: {
             description: 'Stream realtime logs for specific ETL process',
@@ -64,7 +64,7 @@ const routes = [
     },
     {
         method: 'GET',
-        path: '/sas-etl/logs/{log_id}',
+        path: '/logs/{log_id}',
         handler: sasEtlController.getRealtimeCategorySubjectLogs,
         options: {
             description: 'Get realtime logs for specific ETL process',

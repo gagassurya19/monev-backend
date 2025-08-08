@@ -1,12 +1,12 @@
 const Joi = require('joi')
 
-const etlValidators = {
-  etlTokenOnly: Joi.object({
+const etlCoursePerformanceValidators = {
+  etlCoursePerformanceTokenOnly: Joi.object({
     token: Joi.string()
       .required()
       .description('token auth')
   }),
-  etlPagination: Joi.object({
+  etlCoursePerformancePagination: Joi.object({
     token: Joi.string()
       .required()
       .description("token auth"),
@@ -15,4 +15,4 @@ const etlValidators = {
   }),
 }
 
-module.exports = etlValidators
+module.exports = etlCoursePerformanceValidators

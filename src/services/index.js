@@ -4,7 +4,7 @@
 const AuthService = require('./authService')
 const CoursePerformanceService = require('./course-performance')
 const CronService = require('./cronService')
-const EtlService = require('./etlService')
+const EtlCoursePerformanceService = require('./etlCoursePerformanceService')
 const FetchSASCategorySubjectService = require('./fetch-sas-category-subject')
 const StudentActivitySummaryService = require('./student-activity-summary')
 const LogService = require('./logService')
@@ -15,7 +15,7 @@ module.exports = {
   AuthService,
   CoursePerformanceService,
   CronService,
-  EtlService,
+  EtlCoursePerformanceService,
   FetchSASCategorySubjectService,
   StudentActivitySummaryService,
   LogService,
@@ -26,7 +26,7 @@ module.exports = {
   authService: AuthService,
   coursePerformanceService: CoursePerformanceService,
   cronService: CronService,
-  etlService: EtlService,
+  etlService: EtlCoursePerformanceService,
   fetchSASCategorySubjectService: FetchSASCategorySubjectService,
   studentActivitySummaryService: StudentActivitySummaryService,
   logService: LogService,

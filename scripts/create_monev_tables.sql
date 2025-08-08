@@ -206,6 +206,22 @@ CREATE TABLE IF NOT EXISTS monev_sas_realtime_logs (
     FOREIGN KEY (log_id) REFERENCES monev_sas_logs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Create log_scheduler table for ETL tracking
+CREATE TABLE IF NOT EXISTS log_scheduler (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  start_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+  end_date DATETIME NULL,
+  status TINYINT DEFAULT 2 COMMENT '1=finished, 2=inprogress, 3=failed',
+  numrow INT DEFAULT 0 COMMENT 'Total records processed',
+  offset INT DEFAULT 0 COMMENT 'Current offset for pagination',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Add index for better performance
+CREATE INDEX idx_log_scheduler_status ON log_scheduler(status);
+CREATE INDEX idx_log_scheduler_start_date ON log_scheduler(start_date); 
+
 -- Show monev_db tables
 SELECT 'monev_db' as database_name, TABLE_NAME as table_name FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'monev_db';
 

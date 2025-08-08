@@ -3,7 +3,8 @@ const healthRoutes = require('./health')
 const authRoutes = require('./auth')
 const coursePerformanceRoutes = require('./course-performance')
 const studentActivitySummaryRoutes = require('./student-activity-summary')
-const sasEtlRoutes = require('./sas-etl')
+const sasEtlRoutes = require('./etl-student-activity-summary')
+const etlCoursePerformanceRoutes = require('./etl-course-performance')
 const celoeApiRoutes = require('./celoe-api')
 
 // Combine all routes
@@ -29,12 +30,17 @@ const routes = [
 
   ...sasEtlRoutes.map(route => ({
     ...route,
-    path: `${config.api.prefix}${route.path}`
+    path: `${config.api.prefix}/sas-etl${route.path}`
   })),
 
   ...celoeApiRoutes.map(route => ({
     ...route,
     path: `${config.celoeapi.prefix}${route.path}`
+  })),
+
+  ...etlCoursePerformanceRoutes.map(route => ({
+    ...route,
+    path: `/etl-cp${route.path}`
   }))
 ]
 
