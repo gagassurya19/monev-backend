@@ -40,7 +40,7 @@ const routes = [
 
   ...celoeApiRoutes.map(route => ({
     ...route,
-    path: `${config.api.prefix}/${config.celoeapi.prefix}${route.path}`
+    path: `${config.api.prefix}${config.celoeapi.prefix}${route.path}`
   })),
 
   ...etlCoursePerformanceRoutes.map(route => ({
