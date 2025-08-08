@@ -21,8 +21,24 @@ if [ ! -f .env ]; then
     echo ""
 fi
 
-# Read database configuration from .env file
-source .env
+# Read ONLY required database configuration from .env file (avoid parsing lines with spaces or cron strings)
+load_env_var() {
+    local key="$1"
+    local value
+    value=$(grep -E "^${key}=" .env | head -n 1 | cut -d '=' -f2-)
+    # Strip optional surrounding quotes
+    value="${value%\"}"
+    value="${value#\"}"
+    value="${value%\'}"
+    value="${value#\'}"
+    echo "$value"
+}
+
+DB_HOST=$(load_env_var DB_HOST)
+DB_PORT=$(load_env_var DB_PORT)
+DB_NAME=$(load_env_var DB_NAME)
+DB_USER=$(load_env_var DB_USER)
+DB_PASSWORD=$(load_env_var DB_PASSWORD)
 
 echo "Database Configuration:"
 echo "Host: $DB_HOST"
