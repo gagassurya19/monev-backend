@@ -1,76 +1,139 @@
-const axios = require('axios')
-const config = require('../../config')
+const celoeApiGatewayService = require('./celoeapiGatewayService')
 const logger = require('../utils/logger')
 const database = require('../database/connection')
 const dbConfig = require('../../config/database')
 
-// API Configuration
-const API_CONFIG = {
-  baseURL: 'http://localhost:8081/api',
-  token: 'default-webhook-token-change-this',
-  limit: 5000, // Records per page
-  tables: [
-    'course_activity_summary',
-    'course_summary', 
-    'student_assignment_detail',
-    'student_profile',
-    'student_quiz_detail',
-    'student_resource_access'
-  ]
-}
+// Database table names for CP data
+const CP_TABLES = [
+  'cp_student_profile',
+  'cp_course_summary', 
+  'cp_activity_summary',
+  'cp_student_quiz_detail',
+  'cp_student_assignment_detail',
+  'cp_student_resource_access'
+]
 
 // Mapping from API table names to database table names
 const TABLE_MAPPING = {
-  'course_activity_summary': 'monev_cp_activity_summary',
-  'course_summary': 'monev_cp_course_summary',
-  'student_assignment_detail': 'monev_cp_student_assignment_detail',
-  'student_profile': 'monev_cp_student_profile',
-  'student_quiz_detail': 'monev_cp_student_quiz_detail',
-  'student_resource_access': 'monev_cp_student_resource_access'
+  'cp_student_profile': 'monev_cp_student_profile',
+  'cp_course_summary': 'monev_cp_course_summary',
+  'cp_activity_summary': 'monev_cp_activity_summary',
+  'cp_student_quiz_detail': 'monev_cp_student_quiz_detail',
+  'cp_student_assignment_detail': 'monev_cp_student_assignment_detail',
+  'cp_student_resource_access': 'monev_cp_student_resource_access'
 }
 
 const etlCoursePerformanceService = {
   // Main ETL function that runs all ETL operations
   runETL: async () => {
+    const startTime = new Date()
+    let logId = null
+    
     try {
-      logger.info('Starting ETL process from API')
+      logger.info('Starting CP ETL process from new API')
+
+      // Create log entry for this ETL run
+      logId = await etlCoursePerformanceService.createLogEntry(startTime, 2) // status 2 = inprogress
 
       // Clear existing data for fresh ETL run
       await etlCoursePerformanceService.clearExistingData()
 
       // Run concurrent ETL operations for all tables
-      const etlPromises = API_CONFIG.tables.map(table => 
+      const etlPromises = CP_TABLES.map(table => 
         etlCoursePerformanceService.processTableData(table)
       )
 
-      await Promise.all(etlPromises)
+      const results = await Promise.all(etlPromises)
+      
+      // Calculate total records processed
+      const totalRecords = results.reduce((sum, result) => sum + result.records, 0)
+      
+      // Update log entry with success status
+      await etlCoursePerformanceService.updateLogEntry(logId, 1, totalRecords, startTime) // status 1 = finished
 
-      logger.info('ETL process completed successfully')
+      logger.info('CP ETL process completed successfully')
       return { 
         success: true, 
-        message: 'ETL process completed successfully', 
-        timestamp: new Date().toISOString() 
+        message: 'CP ETL process completed successfully', 
+        timestamp: new Date().toISOString(),
+        totalRecords,
+        results
       }
     } catch (error) {
-      logger.error('ETL process failed:', {
+      logger.error('CP ETL process failed:', {
         message: error.message,
         stack: error.stack
       })
+      
+      // Update log entry with failure status
+      if (logId) {
+        await etlCoursePerformanceService.updateLogEntry(logId, 3, 0, startTime) // status 3 = failed
+      }
+      
       throw error
+    }
+  },
+
+  // Create a new log entry in monev_cp_fetch_logs
+  createLogEntry: async (startTime, status = 2) => {
+    try {
+      const query = `
+        INSERT INTO monev_cp_fetch_logs 
+        (start_date, status, offset, numrow) 
+        VALUES (?, ?, ?, ?)
+      `
+      const result = await database.query(query, [
+        startTime,
+        status,
+        0, // offset
+        0  // numrow
+      ])
+      
+      logger.info(`Created log entry with ID: ${result.insertId}`)
+      return result.insertId
+    } catch (error) {
+      logger.error('Failed to create log entry:', error.message)
+      return null
+    }
+  },
+
+  // Update an existing log entry
+  updateLogEntry: async (logId, status, numrow = 0, startTime) => {
+    if (!logId) return
+    
+    try {
+      const endTime = new Date()
+      
+      const query = `
+        UPDATE monev_cp_fetch_logs 
+        SET end_date = ?, status = ?, numrow = ?
+        WHERE id = ?
+      `
+      
+      const result = await database.query(query, [
+        endTime,
+        status,
+        numrow,
+        logId
+      ])
+      
+      logger.info(`Updated log entry ${logId} with status ${status}, records: ${numrow}, affected rows: ${result.affectedRows}`)
+    } catch (error) {
+      logger.error('Failed to update log entry:', error.message)
     }
   },
 
   // Clear existing data before ETL run
   clearExistingData: async () => {
     try {
-      logger.info('Clearing existing ETL data')
+      logger.info('Clearing existing CP ETL data')
 
       const tables = [
         'monev_cp_student_resource_access',
         'monev_cp_student_assignment_detail', 
         'monev_cp_student_quiz_detail',
         'monev_cp_student_profile',
-        'monev_cp_course_activity_summary',
+        'monev_cp_activity_summary',
         'monev_cp_course_summary'
       ]
 
@@ -91,7 +154,7 @@ const etlCoursePerformanceService = {
         }
       }
 
-      logger.info('Existing ETL data cleared (or tables do not exist)')
+      logger.info('Existing CP ETL data cleared (or tables do not exist)')
     } catch (error) {
       logger.error('Error clearing existing data:', {
         message: error.message,
@@ -105,30 +168,19 @@ const etlCoursePerformanceService = {
   },
 
   // Fetch data from API with pagination
-  fetchDataFromAPI: async (page = 1) => {
+  fetchDataFromAPI: async (limit = 100, offset = 0, table = null, tables = null) => {
     try {
-      const url = `${API_CONFIG.baseURL}/export/bulk`
-      const params = {
-        tables: API_CONFIG.tables.join(','),
-        page,
-        limit: API_CONFIG.limit
+      logger.info(`Fetching CP data from API: limit=${limit}, offset=${offset}, table=${table || 'all'}`)
+      
+      const result = await celoeApiGatewayService.exportCPETLData(limit, offset, table, tables, false)
+      
+      if (!result.success) {
+        throw new Error(`API returned error: ${result.error || 'Unknown error'}`)
       }
 
-      const response = await axios.get(url, {
-        params,
-        headers: {
-          'Authorization': `Bearer ${API_CONFIG.token}`
-        },
-        timeout: 30000 // 30 seconds timeout
-      })
-
-      if (!response.data.status) {
-        throw new Error(`API returned error: ${response.data.message || 'Unknown error'}`)
-      }
-
-      return response.data
+      return result
     } catch (error) {
-      logger.error('Error fetching data from API:', {
+      logger.error('Error fetching CP data from API:', {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data
@@ -147,18 +199,19 @@ const etlCoursePerformanceService = {
 
       logger.info(`Starting ETL for table: ${apiTableName} -> ${dbTableName}`)
       
-      let page = 1
+      let offset = 0
       let totalRecords = 0
-      let hasMorePages = true
+      let hasMoreData = true
+      const limit = 100 // Fetch 100 records at a time
 
-      while (hasMorePages) {
-        logger.info(`Fetching page ${page} for table: ${apiTableName}`)
+      while (hasMoreData) {
+        logger.info(`Fetching data for table: ${apiTableName}, offset: ${offset}`)
         
-        const apiResponse = await etlCoursePerformanceService.fetchDataFromAPI(page)
-        const tableData = apiResponse.data[apiTableName] || []
+        const apiResponse = await etlCoursePerformanceService.fetchDataFromAPI(limit, offset, apiTableName)
+        const tableData = apiResponse.tables?.[apiTableName]?.rows || []
         
         if (tableData.length === 0) {
-          logger.info(`No data found for table ${apiTableName} on page ${page}`)
+          logger.info(`No data found for table ${apiTableName} at offset ${offset}`)
           break
         }
 
@@ -166,12 +219,12 @@ const etlCoursePerformanceService = {
         await etlCoursePerformanceService.insertTableData(dbTableName, tableData)
         
         totalRecords += tableData.length
-        logger.info(`Processed ${tableData.length} records for ${apiTableName} -> ${dbTableName} (page ${page})`)
+        logger.info(`Processed ${tableData.length} records for ${apiTableName} -> ${dbTableName} (offset: ${offset})`)
 
-        // Check if there are more pages
-        const pagination = apiResponse.pagination
-        hasMorePages = pagination.has_next && tableData.length === API_CONFIG.limit
-        page++
+        // Check if there are more data
+        const tableInfo = apiResponse.tables?.[apiTableName]
+        hasMoreData = tableInfo?.hasNext && tableData.length === limit
+        offset = tableInfo?.nextOffset || (offset + limit)
 
         // Add small delay to avoid overwhelming the API
         await new Promise(resolve => setTimeout(resolve, 100))
@@ -237,7 +290,7 @@ const etlCoursePerformanceService = {
   // Get ETL status and last run info
   getETLStatus: async () => {
     try {
-      logger.info("Running ETL status check")
+      logger.info("Running CP ETL status check")
 
       let lastRun = null
       let isRunning = false
@@ -245,18 +298,17 @@ const etlCoursePerformanceService = {
       try {
         // Get latest ETL run
         const latestRunRows = await database.query(`
-          SELECT * FROM ${dbConfig.dbNames.main}.monev_cp_fetch_logs ORDER BY id DESC LIMIT 1
+          SELECT * FROM monev_cp_fetch_logs ORDER BY id DESC LIMIT 1
         `)
         lastRun = latestRunRows[0] || null
 
         // Check if any ETL job is currently running (status = 2)
         const runningRows = await database.query(`
-          SELECT COUNT(*) as running_count FROM ${dbConfig.dbNames.main}.monev_cp_fetch_logs WHERE status = 2
+          SELECT COUNT(*) as running_count FROM monev_cp_fetch_logs WHERE status = 2
         `)
         isRunning = runningRows[0]?.running_count > 0
       } catch (tableError) {
-        logger.warn('monev_cp_fetch_logs table does not exist yet, creating it...')
-        // Table doesn't exist, this is normal for new installations
+        logger.warn('Error accessing monev_cp_fetch_logs table:', tableError.message)
         lastRun = null
         isRunning = false
       }
@@ -279,7 +331,7 @@ const etlCoursePerformanceService = {
         shouldRun
       }
     } catch (error) {
-      logger.error('Error getting ETL status:', error.message)
+      logger.error('Error getting CP ETL status:', error.message)
       throw error
     }
   },
@@ -292,20 +344,20 @@ const etlCoursePerformanceService = {
       try {
         // Get total logs count
         const [countResult] = await database.query(`
-          SELECT COUNT(*) as total FROM ${dbConfig.dbNames.main}.monev_cp_fetch_logs
+          SELECT COUNT(*) as total FROM monev_cp_fetch_logs
         `)
         total = countResult?.total ?? countResult[0]?.total ?? 0
 
         // Get paginated logs
         const rows = await database.query(`
-          SELECT * FROM ${dbConfig.dbNames.main}.monev_cp_fetch_logs 
+          SELECT * FROM monev_cp_fetch_logs 
           ORDER BY id DESC 
           LIMIT ${limit} OFFSET ${offset}
         `)
 
         logs = Array.isArray(rows) ? rows : (rows ? [rows] : [])
       } catch (tableError) {
-        logger.warn('monev_cp_fetch_logs table does not exist yet, returning empty history')
+        logger.warn('Error accessing monev_cp_fetch_logs table:', tableError.message)
         total = 0
         logs = []
       }
@@ -351,7 +403,7 @@ const etlCoursePerformanceService = {
         }
       }
     } catch (error) {
-      logger.error('Error getting ETL logs:', error.message)
+      logger.error('Error getting CP ETL logs:', error.message)
       throw error
     }
   },
@@ -359,19 +411,26 @@ const etlCoursePerformanceService = {
   // Test API connection
   testAPIConnection: async () => {
     try {
-      logger.info('Testing API connection...')
-      const response = await etlCoursePerformanceService.fetchDataFromAPI(1)
-      logger.info('API connection test successful')
+      logger.info('Testing CP API connection...')
+      
+      // Test by getting CP ETL status
+      const statusResult = await celoeApiGatewayService.getCPETLStatus()
+      
+      // Test by fetching a small amount of data
+      const exportResult = await celoeApiGatewayService.exportCPETLData(1, 0, 'cp_student_profile', null, true)
+      
+      logger.info('CP API connection test successful')
       return {
         success: true,
-        message: 'API connection successful',
+        message: 'CP API connection successful',
         data: {
-          tables: response.meta?.available_tables || [],
-          totalRecords: response.pagination?.total_records || 0
+          status: statusResult,
+          export: exportResult,
+          availableTables: CP_TABLES
         }
       }
     } catch (error) {
-      logger.error('API connection test failed:', error.message)
+      logger.error('CP API connection test failed:', error.message)
       return {
         success: false,
         message: error.message
