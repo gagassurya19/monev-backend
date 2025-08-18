@@ -3,109 +3,163 @@ const celoeApiGatewayService = require('../services/celoeapiGatewayService')
 const logger = require('../utils/logger')
 
 const celoeApiController = {
-  // Get ETL Status
-  getETLStatus: async (request, h) => {
+  // ===== SAS (Student Activity Summary) ETL Controllers =====
+
+  // Run SAS ETL Pipeline
+  runSASETL: async (request, h) => {
     try {
-      logger.info('Get ETL status requested')
+      const { start_date, end_date, concurrency } = request.payload || {}
+      logger.info('Run SAS ETL process requested', { start_date, end_date, concurrency })
       
-      const result = await celoeApiGatewayService.getETLStatus()
+      const result = await celoeApiGatewayService.runSASETL(start_date, end_date, concurrency)
       
       return h.response(result).code(200)
     } catch (error) {
-      logger.error('Get ETL status failed:', error.message)
+      logger.error('Run SAS ETL process failed:', error.message)
       if (error.isBoom) throw error
-      throw Boom.badImplementation('Failed to get ETL status from external API')
+      throw Boom.badImplementation('Failed to run SAS ETL process on external API')
     }
   },
 
-  // Get ETL Logs
-  getETLLogs: async (request, h) => {
+  // Clean SAS ETL Data
+  cleanSASETL: async (request, h) => {
     try {
-      const { limit, offset } = request.query
-      logger.info('Get ETL logs requested', { limit, offset })
+      logger.info('Clean SAS ETL data requested')
       
-      const result = await celoeApiGatewayService.getETLLogs(limit, offset)
+      const result = await celoeApiGatewayService.cleanSASETL()
       
       return h.response(result).code(200)
     } catch (error) {
-      logger.error('Get ETL logs failed:', error.message)
+      logger.error('Clean SAS ETL data failed:', error.message)
       if (error.isBoom) throw error
-      throw Boom.badImplementation('Failed to get ETL logs from external API')
+      throw Boom.badImplementation('Failed to clean SAS ETL data on external API')
     }
   },
 
-  // Run ETL Process
-  runETL: async (request, h) => {
+  // Get SAS ETL Logs
+  getSASETLLogs: async (request, h) => {
     try {
-      logger.info('Run ETL process requested')
+      const { limit, offset, status } = request.query
+      logger.info('Get SAS ETL logs requested', { limit, offset, status })
       
-      const result = await celoeApiGatewayService.runETL()
+      const result = await celoeApiGatewayService.getSASETLLogs(limit, offset, status)
       
       return h.response(result).code(200)
     } catch (error) {
-      logger.error('Run ETL process failed:', error.message)
+      logger.error('Get SAS ETL logs failed:', error.message)
       if (error.isBoom) throw error
-      throw Boom.badImplementation('Failed to run ETL process on external API')
+      throw Boom.badImplementation('Failed to get SAS ETL logs from external API')
     }
   },
 
-  // Run Incremental ETL
-  runIncrementalETL: async (request, h) => {
+  // Get SAS ETL Status
+  getSASETLStatus: async (request, h) => {
     try {
-      logger.info('Run incremental ETL process requested')
+      logger.info('Get SAS ETL status requested')
       
-      const result = await celoeApiGatewayService.runIncrementalETL()
+      const result = await celoeApiGatewayService.getSASETLStatus()
       
       return h.response(result).code(200)
     } catch (error) {
-      logger.error('Run incremental ETL process failed:', error.message)
+      logger.error('Get SAS ETL status failed:', error.message)
       if (error.isBoom) throw error
-      throw Boom.badImplementation('Failed to run incremental ETL process on external API')
+      throw Boom.badImplementation('Failed to get SAS ETL status from external API')
     }
   },
 
-  // Clear Stuck ETL Processes
-  clearStuckETL: async (request, h) => {
+  // Export SAS ETL Data
+  exportSASETLData: async (request, h) => {
     try {
-      logger.info('Clear stuck ETL processes requested')
+      const { limit, offset, date, course_id } = request.query
+      logger.info('Export SAS ETL data requested', { limit, offset, date, course_id })
       
-      const result = await celoeApiGatewayService.clearStuckETL()
+      const result = await celoeApiGatewayService.exportSASETLData(limit, offset, date, course_id)
       
       return h.response(result).code(200)
     } catch (error) {
-      logger.error('Clear stuck ETL processes failed:', error.message)
+      logger.error('Export SAS ETL data failed:', error.message)
       if (error.isBoom) throw error
-      throw Boom.badImplementation('Failed to clear stuck ETL processes on external API')
+      throw Boom.badImplementation('Failed to export SAS ETL data from external API')
     }
   },
 
-  // Force Clear All Inprogress ETL
-  forceClearETL: async (request, h) => {
+  // ===== CP (Course Performance) ETL Controllers =====
+
+  // Run CP ETL Pipeline
+  runCPETL: async (request, h) => {
     try {
-      logger.info('Force clear ETL processes requested')
+      const { start_date, end_date, concurrency } = request.payload || {}
+      logger.info('Run CP ETL process requested', { start_date, end_date, concurrency })
       
-      const result = await celoeApiGatewayService.forceClearETL()
+      const result = await celoeApiGatewayService.runCPETL(start_date, end_date, concurrency)
       
       return h.response(result).code(200)
     } catch (error) {
-      logger.error('Force clear ETL processes failed:', error.message)
+      logger.error('Run CP ETL process failed:', error.message)
       if (error.isBoom) throw error
-      throw Boom.badImplementation('Failed to force clear ETL processes on external API')
+      throw Boom.badImplementation('Failed to run CP ETL process on external API')
     }
   },
 
-  // Get Debug ETL Status
-  getDebugETL: async (request, h) => {
+  // Clean CP ETL Data
+  cleanCPETL: async (request, h) => {
     try {
-      logger.info('Get debug ETL status requested')
+      logger.info('Clean CP ETL data requested')
       
-      const result = await celoeApiGatewayService.getDebugETL()
+      const result = await celoeApiGatewayService.cleanCPETL()
       
       return h.response(result).code(200)
     } catch (error) {
-      logger.error('Get debug ETL status failed:', error.message)
+      logger.error('Clean CP ETL data failed:', error.message)
       if (error.isBoom) throw error
-      throw Boom.badImplementation('Failed to get debug ETL status from external API')
+      throw Boom.badImplementation('Failed to clean CP ETL data on external API')
+    }
+  },
+
+  // Get CP ETL Logs
+  getCPETLLogs: async (request, h) => {
+    try {
+      const { limit, offset, status } = request.query
+      logger.info('Get CP ETL logs requested', { limit, offset, status })
+      
+      const result = await celoeApiGatewayService.getCPETLLogs(limit, offset, status)
+      
+      return h.response(result).code(200)
+    } catch (error) {
+      logger.error('Get CP ETL logs failed:', error.message)
+      if (error.isBoom) throw error
+      throw Boom.badImplementation('Failed to get CP ETL logs from external API')
+    }
+  },
+
+  // Get CP ETL Status
+  getCPETLStatus: async (request, h) => {
+    try {
+      logger.info('Get CP ETL status requested')
+      
+      const result = await celoeApiGatewayService.getCPETLStatus()
+      
+      return h.response(result).code(200)
+    } catch (error) {
+      logger.error('Get CP ETL status failed:', error.message)
+      if (error.isBoom) throw error
+      throw Boom.badImplementation('Failed to get CP ETL status from external API')
+    }
+  },
+
+  // Export CP ETL Data
+  exportCPETLData: async (request, h) => {
+    try {
+      const { limit, offset, table, tables, debug } = request.query
+      logger.info('Export CP ETL data requested', { limit, offset, table, tables, debug })
+      
+      const result = await celoeApiGatewayService.exportCPETLData(limit, offset, table, tables, debug)
+      
+      return h.response(result).code(200)
+    } catch (error) {
+      logger.error('Export CP ETL data failed:', error.message)
+      if (error.isBoom) throw error
+      throw Boom.badImplementation('Failed to export CP ETL data from external API')
     }
   }
 }
