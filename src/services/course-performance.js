@@ -63,7 +63,8 @@ const detailActivity = {
       ORDER BY sqd.${sortBy} ${sortOrder}
       LIMIT ${limit} OFFSET ${offset}
     `;
-    const [students] = await database.query(dataQuery, params);
+    const studentsResult = await database.query(dataQuery, params);
+    const students = Array.isArray(studentsResult) ? studentsResult : (studentsResult && studentsResult[0] ? studentsResult[0] : [])
   
     const statistics = await detailActivity.calculateQuizStatistics(quizId);
   
@@ -117,7 +118,8 @@ const detailActivity = {
       ORDER BY sad.${sortBy} ${sortOrder}
       LIMIT ${limit} OFFSET ${offset}
     `;
-    const [students] = await database.query(dataQuery, params);
+    const studentsResult = await database.query(dataQuery, params);
+    const students = Array.isArray(studentsResult) ? studentsResult : (studentsResult && studentsResult[0] ? studentsResult[0] : [])
   
     const statistics = await detailActivity.calculateAssignmentStatistics(assignmentId);
   
@@ -172,7 +174,8 @@ const detailActivity = {
       ORDER BY sra.${sortBy} ${sortOrder}
       LIMIT ${limit} OFFSET ${offset}
     `;
-    const [students] = await database.query(dataQuery, params);
+    const studentsResult = await database.query(dataQuery, params);
+    const students = Array.isArray(studentsResult) ? studentsResult : (studentsResult && studentsResult[0] ? studentsResult[0] : [])
   
     const statistics = await detailActivity.calculateResourceStatistics(resourceId);
   
@@ -303,7 +306,7 @@ const coursePerformanceService = {
       baseQuery += ` ORDER BY cs.${sortBy} ${sortOrder}`;
     }
   
-        // Pagination
+    // Pagination
     const limit = Number(pagination.limit) || 10;
     const offset = Number(pagination.offset) || 0;
     baseQuery += ` LIMIT ${limit} OFFSET ${offset}`;

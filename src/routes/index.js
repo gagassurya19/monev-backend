@@ -35,7 +35,7 @@ const routes = [
 
   ...sasEtlRoutes.map(route => ({
     ...route,
-    path: `${config.api.prefix}/sas-etl${route.path}`
+    path: `${config.api.prefix}/etl-sas${route.path}`
   })),
 
   ...celoeApiRoutes.map(route => ({

@@ -76,14 +76,17 @@ const coursePerformanceController = {
       }
 
       // Validasi & kalkulasi pagination
-      const currentPage = Math.max(1, parseInt(page));
-      const perPage = Math.min(Math.max(1, parseInt(limit)), 100);
-      const offset = (currentPage - 1) * perPage;
+      const currentPage = parseInt(page) || 1
+      const currentLimit = parseInt(limit) || 10
+      const pagination = {
+        limit: currentLimit,
+        offset: (currentPage - 1) * currentLimit
+      }
 
       // Ambil data dari service
       const result = await CoursePerformanceService.getCourseActivities(course_id, filters, {
-        limit: perPage,
-        offset
+        limit: currentLimit,
+        offset: (currentPage - 1) * currentLimit
       });
 
       // Jika course tidak ditemukan
@@ -95,7 +98,7 @@ const coursePerformanceController = {
       }
 
       const totalItems = result.total_count || 0;
-      const totalPages = Math.ceil(totalItems / perPage);
+      const totalPages = Math.ceil(totalItems / currentLimit);
 
       return h.response({
         status: true,
@@ -104,7 +107,7 @@ const coursePerformanceController = {
           current_page: currentPage,
           total_pages: totalPages,
           total_items: totalItems,
-          items_per_page: perPage
+          items_per_page: currentLimit
         },
         course_info: {
           course_id: result.course_info.course_id,

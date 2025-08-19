@@ -199,39 +199,29 @@ const etlCoursePerformanceService = {
 
       logger.info(`Starting ETL for table: ${apiTableName} -> ${dbTableName}`)
       
-      let offset = 0
-      let totalRecords = 0
-      let hasMoreData = true
-      const limit = 100 // Fetch 100 records at a time
-
-      while (hasMoreData) {
-        logger.info(`Fetching data for table: ${apiTableName}, offset: ${offset}`)
-        
-        const apiResponse = await etlCoursePerformanceService.fetchDataFromAPI(limit, offset, apiTableName)
-        const tableData = apiResponse.tables?.[apiTableName]?.rows || []
-        
-        if (tableData.length === 0) {
-          logger.info(`No data found for table ${apiTableName} at offset ${offset}`)
-          break
-        }
-
-        // Insert data into database using the mapped table name
-        await etlCoursePerformanceService.insertTableData(dbTableName, tableData)
-        
-        totalRecords += tableData.length
-        logger.info(`Processed ${tableData.length} records for ${apiTableName} -> ${dbTableName} (offset: ${offset})`)
-
-        // Check if there are more data
-        const tableInfo = apiResponse.tables?.[apiTableName]
-        hasMoreData = tableInfo?.hasNext && tableData.length === limit
-        offset = tableInfo?.nextOffset || (offset + limit)
-
-        // Add small delay to avoid overwhelming the API
-        await new Promise(resolve => setTimeout(resolve, 100))
+      // Fetch all data for this table in one call since the new API returns all data
+      const apiResponse = await etlCoursePerformanceService.fetchDataFromAPI(1000, 0, apiTableName)
+      
+      // Handle new response structure
+      let tableData = []
+      if (apiResponse.tables && apiResponse.tables[apiTableName]) {
+        tableData = apiResponse.tables[apiTableName].rows || []
+        logger.info(`Received ${tableData.length} records for table ${apiTableName}`)
+      } else {
+        logger.warn(`No data found for table ${apiTableName} in API response`)
+        return { table: apiTableName, dbTable: dbTableName, records: 0 }
       }
 
-      logger.info(`ETL completed for table ${apiTableName} -> ${dbTableName}: ${totalRecords} total records`)
-      return { table: apiTableName, dbTable: dbTableName, records: totalRecords }
+      if (tableData.length === 0) {
+        logger.info(`No data to process for table ${apiTableName}`)
+        return { table: apiTableName, dbTable: dbTableName, records: 0 }
+      }
+
+      // Insert data into database using the mapped table name
+      await etlCoursePerformanceService.insertTableData(dbTableName, tableData)
+      
+      logger.info(`ETL completed for table ${apiTableName} -> ${dbTableName}: ${tableData.length} total records`)
+      return { table: apiTableName, dbTable: dbTableName, records: tableData.length }
     } catch (error) {
       logger.error(`ETL failed for table ${apiTableName}:`, error.message)
       throw error
@@ -243,11 +233,36 @@ const etlCoursePerformanceService = {
     if (!data || data.length === 0) return
 
     try {
-      const columns = Object.keys(data[0]).filter(key => key !== 'id' && key !== 'created_at' && key !== 'updated_at')
+      // Get table structure to know which columns exist
+      const tableStructureResult = await database.query(`DESCRIBE ${tableName}`)
+      const tableStructure = Array.isArray(tableStructureResult) ? tableStructureResult : (tableStructureResult && tableStructureResult[0] ? tableStructureResult[0] : [])
+      const existingColumns = tableStructure.map(col => col.Field)
+      
+      logger.info(`Table ${tableName} has columns: ${existingColumns.join(', ')}`)
+      
+      // Filter data to only include existing columns
+      const filteredData = data.map(record => {
+        const filteredRecord = {}
+        Object.keys(record).forEach(key => {
+          if (existingColumns.includes(key)) {
+            filteredRecord[key] = record[key]
+          } else {
+            logger.debug(`Filtering out column ${key} for table ${tableName}`)
+          }
+        })
+        return filteredRecord
+      })
+      
+      if (filteredData.length === 0) {
+        logger.warn(`No valid data after filtering for table ${tableName}`)
+        return
+      }
+      
+      const columns = Object.keys(filteredData[0]).filter(key => key !== 'id' && key !== 'created_at' && key !== 'updated_at')
       const placeholders = columns.map(() => '?').join(', ')
       const query = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`
 
-      const values = data.map(record => 
+      const values = filteredData.map(record => 
         columns.map(col => record[col])
       )
 
@@ -256,7 +271,7 @@ const etlCoursePerformanceService = {
         await database.query(query, valueSet)
       }
 
-      logger.info(`Inserted ${data.length} records into ${tableName}`)
+      logger.info(`Inserted ${filteredData.length} records into ${tableName}`)
     } catch (error) {
       if (error.code === 'ER_NO_SUCH_TABLE') {
         logger.warn(`Table ${tableName} does not exist, skipping data insertion`)

@@ -83,6 +83,11 @@ class CeloeApiGatewayService {
     return await this.makeRequest('GET', '/api/etl_sas/export', null, params)
   }
 
+  // Get Course Information
+  async getCourseInfo(courseId) {
+    return await this.makeRequest('GET', `/api/courses/${courseId}`)
+  }
+
   // ===== CP (Course Performance) ETL Methods =====
 
   // Run CP ETL Pipeline
