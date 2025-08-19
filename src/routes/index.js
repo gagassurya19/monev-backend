@@ -2,7 +2,7 @@ const config = require('../../config')
 const healthRoutes = require('./health')
 const authRoutes = require('./auth')
 const coursePerformanceRoutes = require('./course-performance')
-const studentActivitySummaryRoutes = require('./student-activity-summary')
+const sasCategorySubjectRoutes = require('./sas-category-subject')
 const sasEtlRoutes = require('./etl-student-activity-summary')
 const etlCoursePerformanceRoutes = require('./etl-course-performance')
 const celoeApiRoutes = require('./celoe-api')
@@ -28,9 +28,9 @@ const routes = [
     path: `${config.api.prefix}/cp${route.path}`
   })),
 
-  ...studentActivitySummaryRoutes.map(route => ({
+  ...sasCategorySubjectRoutes.map(route => ({
     ...route,
-    path: `${config.api.prefix}/sas${route.path}`
+    path: `${config.api.prefix}/sas-category-subject${route.path}`
   })),
 
   ...sasEtlRoutes.map(route => ({

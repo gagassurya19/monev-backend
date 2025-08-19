@@ -1,6 +1,6 @@
 const cron = require('node-cron')
 const etlCoursePerformanceService = require('./etlCoursePerformanceService')
-const FetchSASCategorySubjectService = require('./fetch-sas-category-subject')
+const SASFetchCategorySubjectService = require('./sas-fetch-category-subject')
 const logger = require('../utils/logger')
 
 class CronService {
@@ -164,7 +164,7 @@ class CronService {
       this.isSASCategorySubjectRunning = true
       logger.info('Starting scheduled SAS Category Subject process')
 
-      const sasService = new FetchSASCategorySubjectService()
+      const sasService = new SASFetchCategorySubjectService()
       await sasService.init()
       
       // Set timeout for the SAS process
