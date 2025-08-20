@@ -31,7 +31,27 @@ async function testETL() {
     console.log('\n3. Testing data fetching...')
     try {
       const allData = await etlStudentActivitySummaryService.fetchAllSASData()
-      console.log(`✅ Data fetching successful: ${allData.length} records`)
+      console.log('✅ Data fetching successful')
+      console.log('Data structure:', {
+        courses: allData.sas_courses?.length || 0,
+        user_activity: allData.sas_user_activity_etl?.length || 0,
+        activity_counts: allData.sas_activity_counts_etl?.length || 0,
+        user_counts: allData.sas_user_counts_etl?.length || 0
+      })
+      
+      // Show sample data for each table
+      if (allData.sas_courses?.length > 0) {
+        console.log('Sample course data:', JSON.stringify(allData.sas_courses[0], null, 2))
+      }
+      if (allData.sas_user_activity_etl?.length > 0) {
+        console.log('Sample user activity data:', JSON.stringify(allData.sas_user_activity_etl[0], null, 2))
+      }
+      if (allData.sas_activity_counts_etl?.length > 0) {
+        console.log('Sample activity counts data:', JSON.stringify(allData.sas_activity_counts_etl[0], null, 2))
+      }
+      if (allData.sas_user_counts_etl?.length > 0) {
+        console.log('Sample user counts data:', JSON.stringify(allData.sas_user_counts_etl[0], null, 2))
+      }
     } catch (error) {
       console.log('❌ Data fetching failed:', error.message)
       return

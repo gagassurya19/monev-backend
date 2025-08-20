@@ -4,7 +4,8 @@ const etlStudentActivitySummaryValidators = {
   // Basic pagination validator
   etlPagination: Joi.object({
     limit: Joi.number().integer().min(1).max(100).default(20).description('Number of logs to return'),
-    offset: Joi.number().integer().min(0).default(0).description('Number of logs to skip')
+    offset: Joi.number().integer().min(0).default(0).description('Number of logs to skip'),
+    type_run: Joi.string().valid('fetch_student_activity_summary').default('fetch_student_activity_summary').description('Filter logs by type_run (SAS ETL only)')
   }),
 
   // Token only validator

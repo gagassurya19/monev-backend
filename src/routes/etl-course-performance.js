@@ -17,6 +17,20 @@ const routes = [
     }
   },
   {
+    method: 'POST', // POST /api/etl/clean - Clean local CP ETL data
+    path: '/clean',
+    handler: etlCoursePerformanceController.cleanLocalData,
+    options: {
+      description: 'Clean local CP ETL data',
+      notes: 'Clean all CP ETL data from local database tables',
+      tags: ['api', 'etl'],
+      validate: {
+        query: validators.etlTokenOnly
+      },
+      auth: 'jwt'
+    }
+  },
+  {
     method: 'GET', // GET /api/etl/status - Get ETL status
     path: '/status',
     handler: etlCoursePerformanceController.getETLStatus,

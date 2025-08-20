@@ -17,6 +17,20 @@ const routes = [
     }
   },
   {
+    method: 'POST', // POST /api/etl-sas/clean - Clean local SAS ETL data
+    path: '/clean',
+    handler: etlStudentActivitySummaryController.cleanLocalData,
+    options: {
+      description: 'Clean local SAS ETL data',
+      notes: 'Clean all SAS ETL data from local database tables',
+      tags: ['api', 'etl', 'sas'],
+      validate: {
+        query: validators.etlTokenOnly
+      },
+      auth: 'jwt'
+    }
+  },
+  {
     method: 'GET', // GET /api/etl-sas/status - Get SAS ETL status
     path: '/status',
     handler: etlStudentActivitySummaryController.getETLStatus,

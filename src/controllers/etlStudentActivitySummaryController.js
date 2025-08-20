@@ -23,6 +23,26 @@ const etlStudentActivitySummaryController = {
     }
   },
 
+  // Clean local SAS ETL data
+  cleanLocalData: async (request, h) => {
+    try {
+      logger.info('Manual SAS ETL data cleanup requested', {
+        webhookToken: request.auth.credentials.token
+      })
+
+      const result = await etlStudentActivitySummaryService.cleanLocalData()
+
+      return h.response({
+        message: 'SAS ETL data cleanup completed successfully',
+        result
+      }).code(200)
+    } catch (error) {
+      logger.error('Manual SAS ETL data cleanup failed:', error.message)
+      if (error.isBoom) throw error
+      throw Boom.badImplementation('SAS ETL data cleanup failed')
+    }
+  },
+
   // Get SAS ETL status
   getETLStatus: async (request, h) => {
     try {
@@ -42,8 +62,8 @@ const etlStudentActivitySummaryController = {
     try {
       logger.info('Get SAS ETL log history')
 
-      const { limit, offset } = request.query;
-      const result = await etlStudentActivitySummaryService.getETLHistory(limit, offset)
+      const { limit, offset, type_run = 'fetch_student_activity_summary' } = request.query;
+      const result = await etlStudentActivitySummaryService.getETLHistory(limit, offset, type_run)
 
       return h.response({
         status: true,

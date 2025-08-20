@@ -58,7 +58,7 @@ const etlStudentActivitySummaryService = {
       await etlStudentActivitySummaryService.checkTablesExist()
 
       // Create log entry for this ETL run
-      logId = await etlStudentActivitySummaryService.createLogEntry(startTime, 2) // status 2 = inprogress
+      logId = await etlStudentActivitySummaryService.createLogEntry(startTime, 'running') // status 2 = inprogress
 
       // Clear existing data for fresh ETL run
       await etlStudentActivitySummaryService.clearExistingData()
@@ -67,9 +67,9 @@ const etlStudentActivitySummaryService = {
       // The API returns data in a single array, not separated by table
       const allData = await etlStudentActivitySummaryService.fetchAllSASData()
       
-      if (!allData || allData.length === 0) {
+      if (!allData || Object.values(allData).every(arr => arr.length === 0)) {
         logger.warn('No SAS data received from API')
-        await etlStudentActivitySummaryService.updateLogEntry(logId, 1, 0, startTime)
+        await etlStudentActivitySummaryService.updateLogEntry(logId, 'finished', 0, startTime)
         return { 
           success: true, 
           message: 'SAS ETL process completed - no data to process', 
@@ -79,7 +79,7 @@ const etlStudentActivitySummaryService = {
         }
       }
 
-      logger.info(`Received ${allData.length} total records from SAS API`)
+      logger.info(`Received data for ${Object.keys(allData).length} tables from API`)
 
       // Process and distribute data to appropriate tables
       const results = await etlStudentActivitySummaryService.processAllSASData(allData)
@@ -88,7 +88,7 @@ const etlStudentActivitySummaryService = {
       const totalRecords = results.reduce((sum, result) => sum + result.records, 0)
       
       // Update log entry with success status
-      await etlStudentActivitySummaryService.updateLogEntry(logId, 1, totalRecords, startTime) // status 1 = finished
+      await etlStudentActivitySummaryService.updateLogEntry(logId, 'finished', totalRecords, startTime) // status 1 = finished
 
       logger.info('SAS ETL process completed successfully')
       return { 
@@ -106,7 +106,7 @@ const etlStudentActivitySummaryService = {
       
       // Update log entry with failure status
       if (logId) {
-        await etlStudentActivitySummaryService.updateLogEntry(logId, 3, 0, startTime) // status 3 = failed
+        await etlStudentActivitySummaryService.updateLogEntry(logId, 'failed', 0, startTime) // status 3 = failed
       }
       
       throw error
@@ -114,14 +114,15 @@ const etlStudentActivitySummaryService = {
   },
 
   // Create a new log entry in monev_sas_logs
-  createLogEntry: async (startTime, status = 2) => {
+  createLogEntry: async (startTime, status = 'running') => {
     try {
       const query = `
         INSERT INTO monev_sas_logs 
-        (start_date, status, offset) 
-        VALUES (?, ?, ?)
+        (type_run, start_date, status, offset) 
+        VALUES (?, ?, ?, ?)
       `
       const result = await database.query(query, [
+        'fetch_student_activity_summary',
         startTime,
         status,
         0 // offset
@@ -142,19 +143,28 @@ const etlStudentActivitySummaryService = {
     try {
       const endTime = new Date()
       
+      // Calculate duration
+      const durationMs = endTime - startTime
+      const hours = String(Math.floor(durationMs / (1000 * 60 * 60))).padStart(2, '0')
+      const minutes = String(Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0')
+      const seconds = String(Math.floor((durationMs % (1000 * 60)) / 1000)).padStart(2, '0')
+      const duration = `${hours}:${minutes}:${seconds}`
+      
       const query = `
         UPDATE monev_sas_logs 
-        SET end_date = ?, status = ?
+        SET end_date = ?, status = ?, duration = ?, total_records = ?
         WHERE id = ?
       `
       
       const result = await database.query(query, [
         endTime,
         status,
+        duration,
+        numrow,
         logId
       ])
       
-      logger.info(`Updated SAS log entry ${logId} with status ${status}, records: ${numrow}, affected rows: ${result.affectedRows}`)
+      logger.info(`Updated SAS log entry ${logId} with status ${status}, records: ${numrow}, duration: ${duration}, affected rows: ${result.affectedRows}`)
     } catch (error) {
       logger.error('Failed to update SAS log entry:', error.message)
     }
@@ -165,11 +175,13 @@ const etlStudentActivitySummaryService = {
     try {
       logger.info('Clearing existing SAS ETL data')
 
+      // Delete tables in correct order to respect foreign key constraints
+      // Child tables first, then parent tables
       const tables = [
-        'monev_sas_user_counts_etl',
-        'monev_sas_user_activity_etl',
-        'monev_sas_activity_counts_etl',
-        'monev_sas_courses'
+        'monev_sas_user_activity_etl',    // References monev_sas_courses
+        'monev_sas_activity_counts_etl',  // No foreign key constraints
+        'monev_sas_user_counts_etl',      // No foreign key constraints
+        'monev_sas_courses'               // Parent table, delete last
       ]
 
       for (const table of tables) {
@@ -229,7 +241,7 @@ const etlStudentActivitySummaryService = {
     try {
       logger.info('Fetching all SAS data from API')
       
-      let allData = []
+      let allData = {}
       let offset = 0
       let hasMoreData = true
       const limit = 100 // Fetch 100 records at a time
@@ -239,25 +251,70 @@ const etlStudentActivitySummaryService = {
         
         const apiResponse = await etlStudentActivitySummaryService.fetchDataFromAPI(limit, offset)
         
-        if (!apiResponse.status || !apiResponse.data || !Array.isArray(apiResponse.data)) {
+        if (!apiResponse.status || !apiResponse.data) {
           logger.warn('Invalid API response, stopping data fetch')
           break
         }
 
-        const batchData = apiResponse.data
-        logger.info(`Received ${batchData.length} records at offset ${offset}`)
+        // Handle the new nested response structure
+        const responseData = apiResponse.data
         
-        allData = allData.concat(batchData)
+        // Initialize allData structure if this is the first batch
+        if (offset === 0) {
+          allData = {
+            sas_user_activity_etl: [],
+            sas_activity_counts_etl: [],
+            sas_user_counts_etl: [],
+            sas_courses: []
+          }
+        }
+
+        // Extract data from each table section
+        if (responseData.sas_user_activity_etl && responseData.sas_user_activity_etl.rows) {
+          allData.sas_user_activity_etl = allData.sas_user_activity_etl.concat(responseData.sas_user_activity_etl.rows)
+        }
         
-        // Check if there are more data
-        hasMoreData = apiResponse.has_next && batchData.length === limit
+        if (responseData.sas_activity_counts_etl && responseData.sas_activity_counts_etl.rows) {
+          allData.sas_activity_counts_etl = allData.sas_activity_counts_etl.concat(responseData.sas_activity_counts_etl.rows)
+        }
+        
+        if (responseData.sas_user_counts_etl && responseData.sas_user_counts_etl.rows) {
+          allData.sas_user_counts_etl = allData.sas_user_counts_etl.concat(responseData.sas_user_counts_etl.rows)
+        }
+        
+        if (responseData.sas_courses && responseData.sas_courses.rows) {
+          allData.sas_courses = allData.sas_courses.concat(responseData.sas_courses.rows)
+        }
+
+        logger.info(`Received data at offset ${offset}:`, {
+          user_activity: responseData.sas_user_activity_etl?.rows?.length || 0,
+          activity_counts: responseData.sas_activity_counts_etl?.rows?.length || 0,
+          user_counts: responseData.sas_user_counts_etl?.rows?.length || 0,
+          courses: responseData.sas_courses?.rows?.length || 0
+        })
+        
+        // Check if there are more data based on the new response structure
+        hasMoreData = apiResponse.has_next && (
+          (responseData.sas_user_activity_etl?.hasNext) ||
+          (responseData.sas_activity_counts_etl?.hasNext) ||
+          (responseData.sas_user_counts_etl?.hasNext) ||
+          (responseData.sas_courses?.hasNext)
+        )
+        
         offset += limit
 
         // Add small delay to avoid overwhelming the API
         await new Promise(resolve => setTimeout(resolve, 100))
       }
 
-      logger.info(`Total SAS data fetched: ${allData.length} records`)
+      // Log total records fetched for each table
+      logger.info(`Total SAS data fetched:`, {
+        user_activity: allData.sas_user_activity_etl.length,
+        activity_counts: allData.sas_activity_counts_etl.length,
+        user_counts: allData.sas_user_counts_etl.length,
+        courses: allData.sas_courses.length
+      })
+      
       return allData
     } catch (error) {
       logger.error('Error fetching all SAS data:', error.message)
@@ -335,77 +392,24 @@ const etlStudentActivitySummaryService = {
       
       const results = []
       
-      // First, we need to extract course information and insert into monev_sas_courses
-      // This is required because other tables have foreign key constraints
-      logger.info('Extracting course information from data...')
-      const courseIds = new Set()
-      
-      for (const record of allData) {
-        if (record.course_id) {
-          courseIds.add(record.course_id)
-        }
-      }
-      
-      // Try to enrich course information from local CP summary if available
-      let courses = []
-      try {
-        const idsArray = Array.from(courseIds).map(id => parseInt(id))
-        if (idsArray.length > 0) {
-          const placeholders = idsArray.map(() => '?').join(', ')
-          const dbResult = await database.query(
-            `SELECT 
-               course_id,
-               subject_id,
-               course_name,
-               course_shortname,
-               faculty_id,
-               program_id,
-               1 AS visible
-             FROM monev_cp_course_summary
-             WHERE course_id IN (${placeholders})`, idsArray)
-          const rows = Array.isArray(dbResult)
-            ? (Array.isArray(dbResult[0]) ? dbResult[0] : dbResult)
-            : []
-          const foundIds = new Set(rows.map(r => r.course_id))
-          // Map found rows
-          courses = rows.map(r => ({
-            course_id: r.course_id,
-            subject_id: r.subject_id,
-            course_name: r.course_name,
-            course_shortname: r.course_shortname,
-            faculty_id: r.faculty_id,
-            program_id: r.program_id,
-            visible: 1,
-            created_at: new Date(),
-            updated_at: new Date()
-          }))
-          // Add missing ones using fallback
-          idsArray.forEach(id => {
-            if (!foundIds.has(id)) {
-              courses.push({
-                course_id: id,
-                subject_id: `SUBJ_${id}`,
-                course_name: `Course ${id}`,
-                course_shortname: `C${id}`,
-                faculty_id: 1,
-                program_id: 1,
-                visible: 1,
-                created_at: new Date(),
-                updated_at: new Date()
-              })
-            }
-          })
-        }
-      } catch (enrichError) {
-        logger.warn('Failed to enrich course info from monev_cp_course_summary, falling back to API/fallback:', enrichError.message)
-        courses = await etlStudentActivitySummaryService.fetchCourseInformation(Array.from(courseIds))
-      }
-      
-      // Insert courses first
-      if (courses.length > 0) {
-        logger.info(`Inserting ${courses.length} courses into monev_sas_courses`)
-        logger.info('Course data sample:', JSON.stringify(courses[0], null, 2))
+      // First, process courses from the API response
+      if (allData.sas_courses && allData.sas_courses.length > 0) {
+        logger.info(`Processing ${allData.sas_courses.length} courses from API response`)
         
+        // Transform course data to match database schema
+        const courses = allData.sas_courses.map(course => ({
+          course_id: parseInt(course.course_id),
+          subject_id: course.subject_id,
+          course_name: course.course_name,
+          course_shortname: course.course_shortname,
+          faculty_id: parseInt(course.faculty_id) || 1,
+          program_id: parseInt(course.program_id) || 1,
+          visible: parseInt(course.visible) || 1,
+          created_at: new Date(course.created_at) || new Date(),
+          updated_at: new Date(course.updated_at) || new Date()
+        }))
+        
+        // Insert courses first
         await etlStudentActivitySummaryService.insertTableData('monev_sas_courses', courses)
         results.push({ table: 'sas_courses', dbTable: 'monev_sas_courses', records: courses.length })
         logger.info(`Successfully inserted ${courses.length} courses`)
@@ -425,40 +429,73 @@ const etlStudentActivitySummaryService = {
         logger.info(`Processing data for table: ${tableName} -> ${dbTableName}`)
         
         if (tableName === 'sas_user_activity_etl') {
-          // Insert user activity data
-          await etlStudentActivitySummaryService.insertTableData(dbTableName, allData)
-          results.push({ table: tableName, dbTable: dbTableName, records: allData.length })
+          // Insert user activity data directly from API response
+          if (allData.sas_user_activity_etl && allData.sas_user_activity_etl.length > 0) {
+            const userActivityData = allData.sas_user_activity_etl.map(record => ({
+              course_id: parseInt(record.course_id),
+              num_teachers: parseInt(record.num_teachers) || 0,
+              num_students: parseInt(record.num_students) || 0,
+              file_views: parseInt(record.file_views) || 0,
+              video_views: parseInt(record.video_views) || 0,
+              forum_views: parseInt(record.forum_views) || 0,
+              quiz_views: parseInt(record.quiz_views) || 0,
+              assignment_views: parseInt(record.assignment_views) || 0,
+              url_views: parseInt(record.url_views) || 0,
+              total_views: parseInt(record.total_views) || 0,
+              avg_activity_per_student_per_day: parseFloat(record.avg_activity_per_student_per_day) || 0,
+              active_days: parseInt(record.active_days) || 0,
+              extraction_date: record.extraction_date,
+              created_at: new Date(record.created_at) || new Date(),
+              updated_at: new Date(record.updated_at) || new Date()
+            }))
+            
+            await etlStudentActivitySummaryService.insertTableData(dbTableName, userActivityData)
+            results.push({ table: tableName, dbTable: dbTableName, records: userActivityData.length })
+          } else {
+            logger.warn(`No data found for ${tableName}`)
+            results.push({ table: tableName, dbTable: dbTableName, records: 0 })
+          }
         } else if (tableName === 'sas_activity_counts_etl') {
-          // Extract activity counts data from the main data
-          const activityCounts = allData.map(record => ({
-            courseid: parseInt(record.course_id),
-            file_views: parseInt(record.file_views) || 0,
-            video_views: parseInt(record.video_views) || 0,
-            forum_views: parseInt(record.forum_views) || 0,
-            quiz_views: parseInt(record.quiz_views) || 0,
-            assignment_views: parseInt(record.assignment_views) || 0,
-            url_views: parseInt(record.url_views) || 0,
-            active_days: parseInt(record.active_days) || 0,
-            extraction_date: record.extraction_date,
-            created_at: new Date(),
-            updated_at: new Date()
-          }))
-          
-          await etlStudentActivitySummaryService.insertTableData(dbTableName, activityCounts)
-          results.push({ table: tableName, dbTable: dbTableName, records: activityCounts.length })
+          // Insert activity counts data directly from API response
+          if (allData.sas_activity_counts_etl && allData.sas_activity_counts_etl.length > 0) {
+            const activityCounts = allData.sas_activity_counts_etl.map(record => ({
+              courseid: parseInt(record.courseid),
+              file_views: parseInt(record.file_views) || 0,
+              video_views: parseInt(record.video_views) || 0,
+              forum_views: parseInt(record.forum_views) || 0,
+              quiz_views: parseInt(record.quiz_views) || 0,
+              assignment_views: parseInt(record.assignment_views) || 0,
+              url_views: parseInt(record.url_views) || 0,
+              active_days: parseInt(record.active_days) || 0,
+              extraction_date: record.extraction_date,
+              created_at: new Date(record.created_at) || new Date(),
+              updated_at: new Date(record.updated_at) || new Date()
+            }))
+            
+            await etlStudentActivitySummaryService.insertTableData(dbTableName, activityCounts)
+            results.push({ table: tableName, dbTable: dbTableName, records: activityCounts.length })
+          } else {
+            logger.warn(`No data found for ${tableName}`)
+            results.push({ table: tableName, dbTable: dbTableName, records: 0 })
+          }
         } else if (tableName === 'sas_user_counts_etl') {
-          // Extract user counts data from the main data
-          const userCounts = allData.map(record => ({
-            courseid: parseInt(record.course_id),
-            num_students: parseInt(record.num_students) || 0,
-            num_teachers: parseInt(record.num_teachers) || 0,
-            extraction_date: record.extraction_date,
-            created_at: new Date(),
-            updated_at: new Date()
-          }))
-          
-          await etlStudentActivitySummaryService.insertTableData(dbTableName, userCounts)
-          results.push({ table: tableName, dbTable: dbTableName, records: userCounts.length })
+          // Insert user counts data directly from API response
+          if (allData.sas_user_counts_etl && allData.sas_user_counts_etl.length > 0) {
+            const userCounts = allData.sas_user_counts_etl.map(record => ({
+              courseid: parseInt(record.courseid),
+              num_students: parseInt(record.num_students) || 0,
+              num_teachers: parseInt(record.num_teachers) || 0,
+              extraction_date: record.extraction_date,
+              created_at: new Date(record.created_at) || new Date(),
+              updated_at: new Date(record.updated_at) || new Date()
+            }))
+            
+            await etlStudentActivitySummaryService.insertTableData(dbTableName, userCounts)
+            results.push({ table: tableName, dbTable: dbTableName, records: userCounts.length })
+          } else {
+            logger.warn(`No data found for ${tableName}`)
+            results.push({ table: tableName, dbTable: dbTableName, records: 0 })
+          }
         } else {
           // For other tables, skip for now
           logger.info(`Skipping table ${tableName} - no data mapping implemented yet`)
@@ -555,7 +592,7 @@ const etlStudentActivitySummaryService = {
 
         // Check if any ETL job is currently running (status = 2)
         const runningRows = await database.query(`
-          SELECT COUNT(*) as running_count FROM monev_sas_logs WHERE status = 2
+          SELECT COUNT(*) as running_count FROM monev_sas_logs WHERE status = 'running'
         `)
         isRunning = runningRows[0]?.running_count > 0
       } catch (tableError) {
@@ -573,7 +610,7 @@ const etlStudentActivitySummaryService = {
           id: lastRun.id,
           start_date: lastRun.start_date,
           end_date: lastRun.end_date,
-          status: lastRun.status === 1 ? 'finished' : (lastRun.status === 2 ? 'inprogress' : 'failed'),
+          status: lastRun.status === 'finished' ? 'finished' : (lastRun.status === 'running' ? 'inprogress' : 'failed'),
           offset: lastRun.offset
         } : null,
         nextRun: shouldRun ? 'Every hour at minute 0' : 'Paused until next day',
@@ -586,24 +623,31 @@ const etlStudentActivitySummaryService = {
     }
   },
 
-  getETLHistory: async (limit = 20, offset = 0) => {
+  getETLHistory: async (limit = 20, offset = 0, type_run = 'fetch_student_activity_summary') => {
     try {
       let total = 0
       let logs = []
 
       try {
-        // Get total logs count
-        const [countResult] = await database.query(`
-          SELECT COUNT(*) as total FROM monev_sas_logs
-        `)
+        // Build WHERE clause for filtering
+        let whereClause = 'WHERE type_run = ?'
+        let whereParams = [type_run]
+
+        // Get total logs count with filter
+        const countQuery = `
+          SELECT COUNT(*) as total FROM monev_sas_logs ${whereClause}
+        `
+        const [countResult] = await database.query(countQuery, whereParams)
         total = countResult?.total ?? countResult[0]?.total ?? 0
 
-        // Get paginated logs
-        const rows = await database.query(`
+        // Get paginated logs with filter
+        const logsQuery = `
           SELECT * FROM monev_sas_logs 
+          ${whereClause}
           ORDER BY id DESC 
           LIMIT ${limit} OFFSET ${offset}
-        `)
+        `
+        const rows = await database.query(logsQuery, whereParams)
 
         logs = Array.isArray(rows) ? rows : (rows ? [rows] : [])
       } catch (tableError) {
@@ -629,10 +673,12 @@ const etlStudentActivitySummaryService = {
 
         return {
           id: log.id,
+          type_run: log.type_run,
           start_date: log.start_date,
           end_date: log.end_date,
           duration,
-          status: log.status === 1 ? 'finished' : (log.status === 2 ? 'inprogress' : 'failed'),
+          status: log.status === 'finished' ? 'finished' : (log.status === 'running' ? 'inprogress' : 'failed'),
+          total_records: log.total_records,
           offset: log.offset,
           created_at: log.created_at ?? null
         }
@@ -649,7 +695,8 @@ const etlStudentActivitySummaryService = {
           offset,
           current_page: currentPage,
           total_pages: totalPages
-        }
+        },
+        filter: { type_run }
       }
     } catch (error) {
       logger.error('Error getting SAS ETL logs:', error.message)
@@ -684,6 +731,70 @@ const etlStudentActivitySummaryService = {
         success: false,
         message: error.message
       }
+    }
+  },
+
+  // Clean local SAS ETL data
+  cleanLocalData: async () => {
+    try {
+      logger.info('Cleaning local SAS ETL data')
+      
+      const tables = [
+        'monev_sas_user_activity_etl',    // References monev_sas_courses
+        'monev_sas_activity_counts_etl',  // No foreign key constraints
+        'monev_sas_user_counts_etl',      // No foreign key constraints
+        'monev_sas_courses'               // Parent table, delete last
+      ]
+
+      const results = {
+        tables: {},
+        totalAffected: 0,
+        timestamp: new Date().toISOString()
+      }
+
+      for (const table of tables) {
+        try {
+          // Get count before deletion
+          const countResult = await database.query(`SELECT COUNT(*) as count FROM ${table}`)
+          const countBefore = countResult[0]?.count || 0
+          
+          // Delete all data
+          await database.query(`DELETE FROM ${table}`)
+          
+          results.tables[table] = countBefore
+          results.totalAffected += countBefore
+          
+          logger.info(`Cleared table: ${table}, deleted ${countBefore} records`)
+        } catch (tableError) {
+          if (tableError.code === 'ER_NO_SUCH_TABLE') {
+            logger.warn(`Table ${table} does not exist, skipping clean operation`)
+            results.tables[table] = 0
+          } else {
+            logger.error(`Error cleaning table ${table}:`, {
+              message: tableError.message,
+              code: tableError.code
+            })
+            throw tableError
+          }
+        }
+      }
+
+      logger.info(`Local SAS ETL data cleaned successfully. Total records deleted: ${results.totalAffected}`)
+      
+      return {
+        success: true,
+        message: 'Local SAS ETL data cleaned successfully',
+        summary: results
+      }
+    } catch (error) {
+      logger.error('Error cleaning local SAS ETL data:', {
+        message: error.message,
+        code: error.code,
+        errno: error.errno,
+        sqlState: error.sqlState,
+        sqlMessage: error.sqlMessage
+      })
+      throw error
     }
   }
 }

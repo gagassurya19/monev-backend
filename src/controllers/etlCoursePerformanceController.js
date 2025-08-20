@@ -24,6 +24,26 @@ const etlCoursePerformanceController = {
     }
   },
 
+  // Clean local CP ETL data
+  cleanLocalData: async (request, h) => {
+    try {
+      logger.info('Manual CP ETL data cleanup requested', {
+        webhookToken: request.auth.credentials.token
+      })
+
+      const result = await EtlCoursePerformanceService.cleanLocalData()
+
+      return h.response({
+        message: 'CP ETL data cleanup completed successfully',
+        result
+      }).code(200)
+    } catch (error) {
+      logger.error('Manual CP ETL data cleanup failed:', error.message)
+      if (error.isBoom) throw error
+      throw Boom.badImplementation('CP ETL data cleanup failed')
+    }
+  },
+
   // Get ETL status
   getETLStatus: async (request, h) => {
     try {

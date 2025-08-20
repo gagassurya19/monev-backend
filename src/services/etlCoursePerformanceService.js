@@ -451,6 +451,64 @@ const etlCoursePerformanceService = {
         message: error.message
       }
     }
+  },
+
+  // Clean local CP ETL data
+  cleanLocalData: async () => {
+    try {
+      logger.info('Cleaning local CP ETL data')
+      
+      const tables = Object.values(TABLE_MAPPING)
+      const results = {
+        tables: {},
+        totalAffected: 0,
+        timestamp: new Date().toISOString()
+      }
+
+      for (const table of tables) {
+        try {
+          // Get count before deletion
+          const countResult = await database.query(`SELECT COUNT(*) as count FROM ${table}`)
+          const countBefore = countResult[0]?.count || 0
+          
+          // Delete all data
+          await database.query(`DELETE FROM ${table}`)
+          
+          results.tables[table] = countBefore
+          results.totalAffected += countBefore
+          
+          logger.info(`Cleared table: ${table}, deleted ${countBefore} records`)
+        } catch (tableError) {
+          if (tableError.code === 'ER_NO_SUCH_TABLE') {
+            logger.warn(`Table ${table} does not exist, skipping clean operation`)
+            results.tables[table] = 0
+          } else {
+            logger.error(`Error cleaning table ${table}:`, {
+              message: tableError.message,
+              code: tableError.code
+            })
+            throw tableError
+          }
+        }
+      }
+
+      logger.info(`Local CP ETL data cleaned successfully. Total records deleted: ${results.totalAffected}`)
+      
+      return {
+        success: true,
+        message: 'Local CP ETL data cleaned successfully',
+        summary: results
+      }
+    } catch (error) {
+      logger.error('Error cleaning local CP ETL data:', {
+        message: error.message,
+        code: error.code,
+        errno: error.errno,
+        sqlState: error.sqlState,
+        sqlMessage: error.sqlMessage
+      })
+      throw error
+    }
   }
 }
 
