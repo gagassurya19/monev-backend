@@ -279,10 +279,10 @@ const sasSummaryService = {
 
       const search = query.search ? String(query.search).trim() : ''
       const searchClause = search
-        ? ` AND (c.course_name LIKE ? OR c.course_shortname LIKE ? OR c.subject_id LIKE ? OR fc.category_name LIKE ? OR sp.category_name LIKE ?)`
+        ? ` AND (t.course_name LIKE ? OR t.course_shortname LIKE ? OR t.fakultas LIKE ? OR t.program_studi LIKE ?)`
         : ''
       const searchParams = search ? [
-        `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`
+        `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`
       ] : []
 
       // Sorting
@@ -309,6 +309,8 @@ const sasSummaryService = {
         FROM (
           SELECT 
             c.course_id AS id,
+            c.course_name AS course_name,
+            c.course_shortname AS course_shortname,
             COALESCE(sp.category_site, 'UNKNOWN') AS site,
             COALESCE(fc.category_name, CONCAT('FAC_', c.faculty_id)) AS fakultas,
             COALESCE(sp.category_name, CONCAT('PRODI_', c.program_id)) AS program_studi,
@@ -337,7 +339,7 @@ const sasSummaryService = {
 
       const dataSql = `
         SELECT 
-          id, site, fakultas, program_studi,
+          id, course_name, course_shortname, site, fakultas, program_studi,
           num_teacher, num_student,
           file, video, forum, quiz, assignment, url,
           sum,
@@ -357,7 +359,8 @@ const sasSummaryService = {
           prodi_id: query.prodi_id || '',
           subject_ids: query.subject_ids || '',
           date_start: dateStart,
-          date_end: dateEnd
+          date_end: dateEnd,
+          search: search
         },
         sorting: { sort_by: query.sort_by || 'sum', sort_order: sortOrder.toLowerCase() },
         pagination: {
@@ -368,6 +371,8 @@ const sasSummaryService = {
         },
         data: rows.map(r => ({
           id: Number(r.id),
+          course_name: r.course_name || '',
+          course_shortname: r.course_shortname || '',
           site: r.site,
           fakultas: r.fakultas,
           program_studi: r.program_studi,
