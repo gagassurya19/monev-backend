@@ -11,13 +11,7 @@ const databaseConfig = {
     waitForConnections: true,
     queueLimit: 0,
     charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
-    // Centralized database names
-    dbNames: {
-      main: process.env.DB_NAME || 'monev_db',
-      old: process.env.OLD_DB_NAME || 'moodle_logs',
-      test: process.env.DB_NAME ? `${process.env.DB_NAME}_test` : 'monev_test_db'
-    }
+    collation: 'utf8mb4_unicode_ci'
   },
   
   production: {
@@ -30,32 +24,20 @@ const databaseConfig = {
     waitForConnections: true,
     queueLimit: 0,
     charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
-    // Centralized database names
-    dbNames: {
-      main: process.env.DB_NAME || 'monev_db',
-      old: process.env.OLD_DB_NAME || 'moodle_logs',
-      test: process.env.DB_NAME ? `${process.env.DB_NAME}_test` : 'monev_test_db'
-    }
+    collation: 'utf8mb4_unicode_ci'
   },
   
   test: {
     host: process.env.DB_HOST || '127.0.0.1',
     port: parseInt(process.env.DB_PORT) || 3306,
-    database: process.env.DB_NAME || 'monev_test_db',
+    database: process.env.DB_NAME || 'monev_db',
     user: process.env.DB_USER || 'monev_user',
     password: process.env.DB_PASSWORD || 'monev_password',
     connectionLimit: 5,
     waitForConnections: true,
     queueLimit: 0,
     charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
-    // Centralized database names
-    dbNames: {
-      main: process.env.DB_NAME || 'monev_test_db',
-      old: process.env.OLD_DB_NAME || 'moodle_logs',
-      test: process.env.DB_NAME ? `${process.env.DB_NAME}_test` : 'monev_test_db'
-    }
+    collation: 'utf8mb4_unicode_ci'
   }
 };
 

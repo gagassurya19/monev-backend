@@ -24,23 +24,23 @@ echo ""
 mysqldump -u $DB_USER -p$DB_PASSWORD $DB_NAME > $BACKUP_FILE
 
 if [ $? -eq 0 ]; then
-    echo "Backup completed successfully!"
+    echo "Backup berhasil diselesaikan!"
     echo "File: $BACKUP_FILE"
-    echo "Size: $(du -h $BACKUP_FILE | cut -f1)"
+    echo "Ukuran: $(du -h $BACKUP_FILE | cut -f1)"
     
-    # Compress backup file
+    # Kompres file backup
     gzip $BACKUP_FILE
-    echo "Compressed: ${BACKUP_FILE}.gz"
-    echo "Compressed size: $(du -h ${BACKUP_FILE}.gz | cut -f1)"
+    echo "Dikompres: ${BACKUP_FILE}.gz"
+    echo "Ukuran terkompres: $(du -h ${BACKUP_FILE}.gz | cut -f1)"
     
-    # Clean up old backups (keep last 7 days)
+    # Bersihkan backup lama (simpan 7 hari terakhir)
     find $BACKUP_DIR -name "monev_db_backup_*.sql.gz" -mtime +7 -delete
-    echo "Cleaned up backups older than 7 days"
+    echo "Membersihkan backup yang lebih dari 7 hari"
     
 else
-    echo "Error: Backup failed!"
+    echo "Error: Backup gagal!"
     exit 1
 fi
 
 echo ""
-echo "=== Backup Complete ===" 
+echo "=== Backup Selesai ===" 
