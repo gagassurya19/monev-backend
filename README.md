@@ -269,7 +269,7 @@ Lihat file `.env.example` untuk konfigurasi lengkap.
 Setelah server berjalan, Anda dapat mengakses dokumentasi API interaktif di:
 
 ```
-http://localhost:3001/documentation
+http://localhost:3001/swagger
 ```
 
 ## 🔐 Autentikasi

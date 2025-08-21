@@ -4,8 +4,8 @@ const swaggerOptions = {
     version: '1.0.0',
     description: 'API for MONEV - Educational Analytics Platform'
   },
-  documentationPath: '/api/docs',
-  jsonPath: '/api/swagger.json',
+  documentationPath: '/swagger',
+  jsonPath: '/swagger.json',
   securityDefinitions: {
     Bearer: {
       type: 'apiKey',

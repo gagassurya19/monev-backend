@@ -93,7 +93,7 @@ mkdir -p logs
 # Mulai aplikasi
 echo "🚀 Memulai aplikasi..."
 echo "   Server akan tersedia di: http://localhost:3001"
-echo "   Dokumentasi API: http://localhost:3001/documentation"
+echo "   Dokumentasi API: http://localhost:3001/swagger"
 echo "   Tekan Ctrl+C untuk menghentikan server"
 echo ""
 
