@@ -37,6 +37,12 @@ const init = async () => {
     }
   })
 
+  // Log CORS configuration for debugging
+  logger.info('CORS Configuration:', {
+    corsOrigins: config.server.corsOrigins,
+    corsEnabled: true
+  })
+
   // Register plugins
   await server.register([
     require('@hapi/inert'),
@@ -52,8 +58,23 @@ const init = async () => {
     method: 'OPTIONS',
     path: '/{p*}',
     handler: (request, h) => {
+      const origin = request.headers.origin;
+      const allowedOrigins = config.server.corsOrigins;
+      
+      // Check if origin is in allowed list
+      const isAllowed = allowedOrigins.includes('*') || allowedOrigins.includes(origin);
+      
+      // Log CORS preflight request for debugging
+      logger.info('CORS Preflight Request:', {
+        origin: origin,
+        allowedOrigins: allowedOrigins,
+        isAllowed: isAllowed,
+        path: request.path,
+        method: request.method
+      });
+      
       return h.response()
-        .header('Access-Control-Allow-Origin', '*')
+        .header('Access-Control-Allow-Origin', isAllowed ? origin : allowedOrigins[0])
         .header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
         .header('Access-Control-Allow-Headers', 'Accept, Authorization, Content-Type, If-None-Match, Origin, X-Requested-With, Cache-Control, Pragma, X-Forwarded-For, X-Forwarded-Proto')
         .header('Access-Control-Allow-Credentials', 'true')
@@ -64,7 +85,7 @@ const init = async () => {
     options: {
       auth: false, // Ensure OPTIONS requests bypass authentication
       cors: {
-        origin: ['*']
+        origin: config.server.corsOrigins
       }
     }
   })
