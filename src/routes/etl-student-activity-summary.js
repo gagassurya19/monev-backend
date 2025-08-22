@@ -13,7 +13,7 @@ const routes = [
       validate: {
         query: validators.etlTokenOnly
       },
-      auth: 'jwt'
+              auth: 'jwt'
     }
   },
   {

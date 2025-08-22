@@ -11,6 +11,12 @@ const etlStudentActivitySummaryValidators = {
   // Token only validator
   etlTokenOnly: Joi.object({
     token: Joi.string().optional().description('Webhook token for authentication')
+  }),
+
+  // ETL trigger body validator
+  etlTriggerBody: Joi.object({
+    start_date: Joi.date().iso().description('Start date for ETL process (YYYY-MM-DD)'),
+    concurrency: Joi.number().integer().min(1).max(10).default(4).description('Number of concurrent processes (1-10)')
   })
 }
 

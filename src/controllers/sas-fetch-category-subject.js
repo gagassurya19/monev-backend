@@ -59,7 +59,7 @@ const sasFetchCategorySubjectController = {
     },
 
     // Filter endpoints
-    getFakultas: async (request, h) => {
+    getFakultas: async function(request, h) {
         try {
             await sasFetchCategorySubjectController.init()
             const decodedToken = request.auth.credentials;
@@ -82,7 +82,7 @@ const sasFetchCategorySubjectController = {
         }
     },
 
-    getProdiByFakultas: async (request, h) => {
+    getProdiByFakultas: async function(request, h) {
         try {
             await sasFetchCategorySubjectController.init()
             const decodedToken = request.auth.credentials;
@@ -105,7 +105,7 @@ const sasFetchCategorySubjectController = {
         }
     },
 
-    getMatkulByProdi: async (request, h) => {
+    getMatkulByProdi: async function(request, h) {
         try {
             await sasFetchCategorySubjectController.init()
             const decodedToken = request.auth.credentials;

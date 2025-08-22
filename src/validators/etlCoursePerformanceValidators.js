@@ -13,6 +13,10 @@ const etlCoursePerformanceValidators = {
     limit: Joi.number(),
     offset: Joi.number()
   }),
+  etlTriggerBody: Joi.object({
+    start_date: Joi.date().iso().description('Start date for ETL process (YYYY-MM-DD)'),
+    concurrency: Joi.number().integer().min(1).max(10).default(4).description('Number of concurrent processes (1-10)')
+  })
 }
 
 module.exports = etlCoursePerformanceValidators

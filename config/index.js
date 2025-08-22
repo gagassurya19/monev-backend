@@ -30,8 +30,8 @@ const config = {
   
   etl_sas_category_subject: {
     endpoint: {
-      categories: process.env.CELOE_API_ENDPOINT_CATEGORIES || '/course/category',
-      subjects: process.env.CELOE_API_ENDPOINT_SUBJECTS || '/course/subject'
+      categories: process.env.EXTERNAL_API_ENDPOINT_CATEGORIES || '/course/category',
+      subjects: process.env.EXTERNAL_API_ENDPOINT_SUBJECTS || '/course/subject'
     },
     batchSize: parseInt(process.env.ETL_BATCH_SIZE) || 1000,
     timeout: parseInt(process.env.ETL_TIMEOUT) || 1800000, // 30 minutes
@@ -39,8 +39,8 @@ const config = {
   },
 
   celoeapi: {
-    baseUrl: process.env.CELOE_API_MOODLE_BASE_URL || 'http://localhost:8081',
-    prefix: process.env.CELOE_API_PREFIX || '/celoeapi'
+    baseUrl: process.env.EXTERNAL_API_MOODLE_BASE_URL || 'http://localhost:8081',
+    prefix: process.env.EXTERNAL_API_PREFIX || '/celoeapi'
   }
 };
 

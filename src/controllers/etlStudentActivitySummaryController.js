@@ -6,15 +6,23 @@ const etlStudentActivitySummaryController = {
   // Manually trigger SAS ETL process
   triggerETL: async (request, h) => {
     try {
+      const { start_date, concurrency = 4 } = request.payload || {}
+      
       logger.info('Manual SAS ETL trigger requested', {
-        webhookToken: request.auth.credentials.token
+        webhookToken: request.auth.credentials.token,
+        start_date,
+        concurrency
       })
 
-      const result = await etlStudentActivitySummaryService.runETL()
+      const result = await etlStudentActivitySummaryService.runETL(start_date, concurrency)
 
       return h.response({
         message: 'SAS ETL process completed successfully',
-        result
+        result,
+        parameters: {
+          start_date,
+          concurrency
+        }
       }).code(200)
     } catch (error) {
       logger.error('Manual SAS ETL trigger failed:', error.message)

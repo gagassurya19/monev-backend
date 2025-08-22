@@ -2,17 +2,16 @@ const mysql = require('mysql2/promise')
 const config = require('../../config')
 const logger = require('../utils/logger');
 const database = require('../database/connection');
-const dbConfig = require('../../config/database');
 
 const detailActivity = {
   getCourseActivityInfo: async (course_id, activity_type, activity_id) => {
     const [activityRows] = await database.query(`
-      SELECT * FROM ${dbConfig.dbNames.main}.monev_cp_activity_summary
+      SELECT * FROM monev_cp_activity_summary
       WHERE course_id = ? AND activity_type = ? AND activity_id = ?
     `, [course_id, activity_type, activity_id]);
   
     const [courseRows] = await database.query(`
-      SELECT * FROM ${dbConfig.dbNames.main}.monev_cp_course_summary
+      SELECT * FROM monev_cp_course_summary
       WHERE course_id = ?
     `, [course_id]);
   
@@ -37,8 +36,8 @@ const detailActivity = {
     }
   
     const countQuery = `
-      SELECT COUNT(*) as total FROM ${dbConfig.dbNames.main}.monev_cp_student_quiz_detail sqd
-      LEFT JOIN ${dbConfig.dbNames.main}.monev_cp_student_profile sp ON sp.user_id = sqd.user_id
+      SELECT COUNT(*) as total FROM monev_cp_student_quiz_detail sqd
+      LEFT JOIN monev_cp_student_profile sp ON sp.user_id = sqd.user_id
       WHERE ${where.join(' AND ')}
     `;
     const [countRows] = await database.query(countQuery, params);
@@ -57,8 +56,8 @@ const detailActivity = {
       SELECT sqd.id, sqd.user_id, sqd.nim, sqd.full_name, sp.program_studi,
              sqd.waktu_mulai, sqd.waktu_selesai, sqd.durasi_waktu AS durasi_pengerjaan,
              sqd.jumlah_soal, sqd.jumlah_dikerjakan, sqd.nilai, sqd.waktu_mulai AS waktu_aktivitas
-      FROM ${dbConfig.dbNames.main}.monev_cp_student_quiz_detail sqd
-      LEFT JOIN ${dbConfig.dbNames.main}.monev_cp_student_profile sp ON sp.user_id = sqd.user_id
+      FROM monev_cp_student_quiz_detail sqd
+      LEFT JOIN monev_cp_student_profile sp ON sp.user_id = sqd.user_id
       WHERE ${where.join(' AND ')}
       ORDER BY sqd.${sortBy} ${sortOrder}
       LIMIT ${limit} OFFSET ${offset}
@@ -95,8 +94,8 @@ const detailActivity = {
     }
   
     const countQuery = `
-      SELECT COUNT(*) as total FROM ${dbConfig.dbNames.main}.monev_cp_student_assignment_detail sad
-      LEFT JOIN ${dbConfig.dbNames.main}.monev_cp_student_profile sp ON sp.user_id = sad.user_id
+      SELECT COUNT(*) as total FROM monev_cp_student_assignment_detail sad
+      LEFT JOIN monev_cp_student_profile sp ON sp.user_id = sad.user_id
       WHERE ${where.join(' AND ')}
     `;
     const [countRows] = await database.query(countQuery, params);
@@ -104,16 +103,19 @@ const detailActivity = {
   
     let sortBy = filters.sort_by || 'full_name';
     if (sortBy === 'waktu_aktivitas') sortBy = 'waktu_submit';
+    const validSort = ['full_name', 'nim', 'nilai', 'waktu_submit'];
+    if (!validSort.includes(sortBy)) sortBy = 'full_name';
+  
     const sortOrder = filters.sort_order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
     const limit = pagination.limit || 10;
     const offset = pagination.offset || 0;
   
     const dataQuery = `
       SELECT sad.id, sad.user_id, sad.nim, sad.full_name, sp.program_studi,
-             sad.waktu_submit, sad.waktu_pengerjaan AS durasi_pengerjaan, sad.nilai,
-             sad.waktu_submit AS waktu_aktivitas
-      FROM ${dbConfig.dbNames.main}.monev_cp_student_assignment_detail sad
-      LEFT JOIN ${dbConfig.dbNames.main}.monev_cp_student_profile sp ON sp.user_id = sad.user_id
+             sad.waktu_submit, sad.waktu_pengerjaan AS durasi_pengerjaan,
+             sad.nilai, sad.waktu_submit AS waktu_aktivitas
+      FROM monev_cp_student_assignment_detail sad
+      LEFT JOIN monev_cp_student_profile sp ON sp.user_id = sad.user_id
       WHERE ${where.join(' AND ')}
       ORDER BY sad.${sortBy} ${sortOrder}
       LIMIT ${limit} OFFSET ${offset}
@@ -150,8 +152,8 @@ const detailActivity = {
     }
   
     const countQuery = `
-      SELECT COUNT(*) as total FROM ${dbConfig.dbNames.main}.monev_cp_student_resource_access sra
-      LEFT JOIN ${dbConfig.dbNames.main}.monev_cp_student_profile sp ON sp.user_id = sra.user_id
+      SELECT COUNT(*) as total FROM monev_cp_student_resource_access sra
+      LEFT JOIN monev_cp_student_profile sp ON sp.user_id = sra.user_id
       WHERE ${where.join(' AND ')}
     `;
     const [countRows] = await database.query(countQuery, params);
@@ -159,17 +161,18 @@ const detailActivity = {
   
     let sortBy = filters.sort_by || 'full_name';
     if (sortBy === 'waktu_aktivitas') sortBy = 'waktu_akses';
-    if (sortBy === 'nilai') sortBy = 'full_name'; // fallback
-    const sortOrder = filters.sort_order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    const validSort = ['full_name', 'nim', 'waktu_akses'];
+    if (!validSort.includes(sortBy)) sortBy = 'full_name';
   
+    const sortOrder = filters.sort_order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
     const limit = pagination.limit || 10;
     const offset = pagination.offset || 0;
   
     const dataQuery = `
       SELECT sra.id, sra.user_id, sra.nim, sra.full_name, sp.program_studi,
              sra.waktu_akses, sra.waktu_akses AS waktu_aktivitas
-      FROM ${dbConfig.dbNames.main}.monev_cp_student_resource_access sra
-      LEFT JOIN ${dbConfig.dbNames.main}.monev_cp_student_profile sp ON sp.user_id = sra.user_id
+      FROM monev_cp_student_resource_access sra
+      LEFT JOIN monev_cp_student_profile sp ON sp.user_id = sra.user_id
       WHERE ${where.join(' AND ')}
       ORDER BY sra.${sortBy} ${sortOrder}
       LIMIT ${limit} OFFSET ${offset}
@@ -191,52 +194,64 @@ const detailActivity = {
     };
   },  
 
-  async calculateQuizStatistics(quizId) {
-    const [result] = await database.query(`
-      SELECT COUNT(*) AS total_participants,
-             AVG(nilai) AS average_score,
-             COUNT(CASE WHEN nilai IS NOT NULL THEN 1 END) AS completed_count
-      FROM ${dbConfig.dbNames.main}.monev_cp_student_quiz_detail
+  calculateQuizStatistics: async (quizId) => {
+    const [rows] = await database.query(`
+      SELECT 
+        COUNT(*) as total_participants,
+        AVG(nilai) as average_score,
+        MIN(nilai) as min_score,
+        MAX(nilai) as max_score,
+        SUM(CASE WHEN nilai >= 70 THEN 1 ELSE 0 END) as passed_count
+      FROM monev_cp_student_quiz_detail
       WHERE quiz_id = ?
     `, [quizId]);
   
-    const stats = result || {};
-    const completionRate = stats.total_participants > 0
-      ? (stats.completed_count / stats.total_participants) * 100
-      : 0;
+    const stats = rows || {};
+    const totalParticipants = stats.total_participants || 0;
+    const passedCount = stats.passed_count || 0;
+    const completionRate = totalParticipants > 0 ? (passedCount / totalParticipants) * 100 : 0;
   
     return {
-      total_participants: stats.total_participants || 0,
-      average_score: stats.average_score ? Number(stats.average_score).toFixed(2) : null,
-      completion_rate: Number(completionRate.toFixed(2)),
+      total_participants: totalParticipants,
+      average_score: stats.average_score || 0,
+      min_score: stats.min_score || 0,
+      max_score: stats.max_score || 0,
+      passed_count: passedCount,
+      completion_rate: Math.round(completionRate * 100) / 100,
     };
   },
-  
-  async calculateAssignmentStatistics(assignmentId) {
+
+  calculateAssignmentStatistics: async (assignmentId) => {
     const [rows] = await database.query(`
-      SELECT COUNT(*) AS total_participants,
-             AVG(nilai) AS average_score,
-             COUNT(CASE WHEN nilai IS NOT NULL THEN 1 END) AS completed_count
-      FROM ${dbConfig.dbNames.main}.monev_cp_student_assignment_detail
+      SELECT 
+        COUNT(*) as total_participants,
+        AVG(nilai) as average_score,
+        MIN(nilai) as min_score,
+        MAX(nilai) as max_score,
+        SUM(CASE WHEN nilai >= 70 THEN 1 ELSE 0 END) as passed_count
+      FROM monev_cp_student_assignment_detail
       WHERE assignment_id = ?
     `, [assignmentId]);
   
     const stats = rows || {};
-    const completionRate = stats.total_participants > 0
-      ? (stats.completed_count / stats.total_participants) * 100
-      : 0;
+    const totalParticipants = stats.total_participants || 0;
+    const passedCount = stats.passed_count || 0;
+    const completionRate = totalParticipants > 0 ? (passedCount / totalParticipants) * 100 : 0;
   
     return {
-      total_participants: stats.total_participants || 0,
-      average_score: stats.average_score ? Number(stats.average_score).toFixed(2) : null,
-      completion_rate: Number(completionRate.toFixed(2)),
+      total_participants: totalParticipants,
+      average_score: stats.average_score || 0,
+      min_score: stats.min_score || 0,
+      max_score: stats.max_score || 0,
+      passed_count: passedCount,
+      completion_rate: Math.round(completionRate * 100) / 100,
     };
   },
-  
-  async calculateResourceStatistics(resourceId) {
+
+  calculateResourceStatistics: async (resourceId) => {
     const [rows] = await database.query(`
-      SELECT COUNT(DISTINCT user_id) AS total_participants
-      FROM ${dbConfig.dbNames.main}.monev_cp_student_resource_access
+      SELECT COUNT(*) as total_participants
+      FROM monev_cp_student_resource_access
       WHERE resource_id = ?
     `, [resourceId]);
   
@@ -269,7 +284,7 @@ const coursePerformanceService = {
   
     // Join jika ada filter activity_type
     if (filters.activity_type) {
-      joins += ` JOIN ${dbConfig.dbNames.main}.monev_cp_activity_summary cas ON cas.course_id = cs.course_id`;
+      joins += ` JOIN monev_cp_activity_summary cas ON cas.course_id = cs.course_id`;
       whereConditions.push(`cas.activity_type = ?`);
       whereParams.push(filters.activity_type);
     }
@@ -279,7 +294,7 @@ const coursePerformanceService = {
     // Query total count
     const countQuery = `
       SELECT COUNT(DISTINCT cs.course_id) AS total
-      FROM ${dbConfig.dbNames.main}.monev_cp_course_summary cs
+      FROM monev_cp_course_summary cs
       ${joins}
       ${whereClause}
     `;
@@ -291,7 +306,7 @@ const coursePerformanceService = {
     let baseQuery = `
       SELECT DISTINCT cs.course_id, cs.course_name, cs.kelas,
              cs.jumlah_aktivitas, cs.jumlah_mahasiswa, cs.dosen_pengampu
-      FROM ${dbConfig.dbNames.main}.monev_cp_course_summary cs
+      FROM monev_cp_course_summary cs
       ${joins}
       ${whereClause}
     `;
@@ -322,7 +337,7 @@ const coursePerformanceService = {
   getCourseActivities: async (course_id, filters = {}, pagination = {}) => {
     const [courseRows] = await database.query(
       `SELECT course_id, course_name, kelas 
-       FROM ${dbConfig.dbNames.main}.monev_cp_course_summary 
+       FROM monev_cp_course_summary 
        WHERE course_id = ?`, 
       [course_id]
     );
@@ -338,169 +353,100 @@ const coursePerformanceService = {
       whereParams.push(filters.activity_type);
     }
   
-    if (filters.activity_id) {
-      whereClauses.push('cas.activity_id = ?');
-      whereParams.push(filters.activity_id);
-    }
-  
-    if (filters.section) {
+    if (filters.section && !isNaN(filters.section)) {
       whereClauses.push('cas.section = ?');
-      whereParams.push(filters.section);
+      whereParams.push(parseInt(filters.section));
     }
   
-    const whereSQL = whereClauses.join(' AND ');
+    if (filters.activity_id && !isNaN(filters.activity_id)) {
+      whereClauses.push('cas.activity_id = ?');
+      whereParams.push(parseInt(filters.activity_id));
+    }
   
-    // Hitung total
-    const [countRows] = await database.query(
-      `SELECT COUNT(*) AS total 
-       FROM ${dbConfig.dbNames.main}.monev_cp_activity_summary cas 
-       WHERE ${whereSQL}`, 
-      whereParams
-    );
+    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
   
-    const total_count = countRows?.total || 0;
+    // Query total count
+    const countQuery = `
+      SELECT COUNT(*) AS total
+      FROM monev_cp_activity_summary cas
+      ${whereClause}
+    `;
   
-        // Ambil data aktivitas
+    const [countResult] = await database.query(countQuery, whereParams);
+    const totalCount = countResult?.total || 0;
+  
+    // Query data utama
+    let baseQuery = `
+      SELECT cas.id, cas.course_id, cas.section, cas.activity_id, cas.activity_type,
+             cas.activity_name, cas.accessed_count, cas.submission_count,
+             cas.graded_count, cas.attempted_count, cas.created_at, cas.updated_at
+      FROM monev_cp_activity_summary cas
+      ${whereClause}
+    `;
+  
+    // Sorting
+    const sortBy = filters.sort_by || 'activity_name';
+    const validSortFields = ['activity_name', 'activity_type', 'accessed_count', 'created_at'];
+    const finalSortBy = validSortFields.includes(sortBy) ? sortBy : 'activity_name';
+    const sortOrder = (filters.sort_order || 'asc').toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+  
+    baseQuery += ` ORDER BY cas.${finalSortBy} ${sortOrder}`;
+  
+    // Pagination
     const limit = Number(pagination.limit) || 20;
     const offset = Number(pagination.offset) || 0;
+    baseQuery += ` LIMIT ${limit} OFFSET ${offset}`;
+  
+    const rows = await database.query(baseQuery, whereParams);
+  
+    return {
+      data: rows,
+      total_count: totalCount,
+      course_info: courseInfo
+    };
+  },
 
-    const activityRows = await database.query(
-      `SELECT cas.id, cas.course_id, cas.section, cas.activity_id, 
-              cas.activity_type, cas.activity_name, cas.accessed_count, 
-              cas.submission_count, cas.graded_count, cas.attempted_count, 
-              cas.created_at
-       FROM ${dbConfig.dbNames.main}.monev_cp_activity_summary cas
-       WHERE ${whereSQL}
-       ORDER BY cas.section ASC, cas.activity_name ASC
-       LIMIT ${limit} OFFSET ${offset}`, 
-      whereParams
+  getCourseSummary: async (course_id) => {
+    const [courseRows] = await database.query(
+      `SELECT * FROM monev_cp_course_summary WHERE course_id = ?`,
+      [course_id]
+    );
+  
+    if (!courseRows) return null;
+  
+    // Get activity counts
+    const [activityCounts] = await database.query(
+      `SELECT 
+         COUNT(*) as total_activities,
+         COUNT(DISTINCT activity_type) as unique_activity_types,
+         SUM(accessed_count) as total_accesses
+       FROM monev_cp_activity_summary 
+       WHERE course_id = ?`,
+      [course_id]
+    );
+  
+    // Get student counts
+    const [studentCounts] = await database.query(
+      `SELECT COUNT(DISTINCT user_id) as total_students
+       FROM monev_cp_student_profile 
+       WHERE user_id IN (
+         SELECT DISTINCT user_id FROM monev_cp_student_quiz_detail WHERE quiz_id IN (
+           SELECT DISTINCT activity_id FROM monev_cp_activity_summary 
+           WHERE course_id = ? AND activity_type = 'quiz'
+         )
+       )`,
+      [course_id]
     );
   
     return {
-      data: activityRows,
-      total_count,
-      course_info: courseInfo
+      course: courseRows,
+      activity_summary: activityCounts || {},
+      student_summary: studentCounts || {}
     };
-  },  
-
-  getStatusETLLastRun: async (request, h) => {
-    try {
-      const lastRunQuery = `
-        SELECT * FROM ${dbConfig.dbNames.main}.monev_cp_fetch_logs 
-        ORDER BY id DESC 
-        LIMIT 1
-      `;
-      const lastRunResult = await database.query(lastRunQuery);
-      const lastRun = lastRunResult[0] || null;
-      
-      const runningQuery = `
-        SELECT COUNT(*) as running_count 
-        FROM ${dbConfig.dbNames.main}.monev_cp_fetch_logs 
-        WHERE status = 2
-      `;
-      const runningResult = await database.query(runningQuery);
-      const isRunning = runningResult[0]?.running_count > 0;
-      
-      const response = {
-        status: 'active',
-        lastRun: lastRun ? {
-          id: lastRun.id,
-          start_date: lastRun.start_date,
-          end_date: lastRun.end_date,
-          status: lastRun.status === 1 ? 'finished' : (lastRun.status === 2 ? 'inprogress' : 'failed'),
-          total_records: lastRun.numrow,
-          offset: lastRun.offset
-        } : null,
-        nextRun: 'Every hour at minute 0',
-        isRunning: isRunning
-      };
-      
-      return h.response({
-        status: true,
-        data: response
-      }).code(200);
-      
-    } catch (error) {
-      logger.error('Error getting ETL status:', error.message);
-      return h.response({
-        status: false,
-        message: 'Failed to get ETL status',
-        error: error.message
-      }).code(500);
-    }
   },
 
-  getHistoryETLRun: async (request, h) => {
-    try {
-      const { limit = 20, offset = 0 } = request.query;
-      
-      // Get total count
-      const countQuery = `
-        SELECT COUNT(*) as total FROM ${dbConfig.dbNames.main}.monev_cp_fetch_logs
-      `;
-      const [countResult] = await database.query(countQuery);
-      const total = countResult?.total || 0;
-      
-      // Get logs with pagination
-      const logsQuery = `
-        SELECT * FROM ${dbConfig.dbNames.main}.monev_cp_fetch_logs 
-        ORDER BY id DESC 
-        LIMIT ? OFFSET ?
-      `;
-      const logsResult = await database.query(logsQuery, [parseInt(limit), parseInt(offset)]);
-      const logs = logsResult || [];
-      
-      // Format logs
-      const formattedLogs = [];
-      for (const log of logs) {
-        let duration = null;
-        if (log.start_date && log.end_date) {
-          const start = new Date(log.start_date);
-          const end = new Date(log.end_date);
-          const diffMs = end - start;
-          const diffHrs = Math.floor(diffMs / 3600000);
-          const diffMins = Math.floor((diffMs % 3600000) / 60000);
-          const diffSecs = Math.floor((diffMs % 60000) / 1000);
-          
-          duration = `${String(diffHrs).padStart(2, '0')}:${String(diffMins).padStart(2, '0')}:${String(diffSecs).padStart(2, '0')}`;
-        }
-        
-        formattedLogs.push({
-          id: log.id,
-          start_date: log.start_date,
-          end_date: log.end_date,
-          duration: duration,
-          status: log.status === 1 ? 'finished' : (log.status === 2 ? 'inprogress' : 'failed'),
-          total_records: log.numrow,
-          offset: log.offset,
-          created_at: log.created_at || null
-        });
-      }
-      
-      return h.response({
-        status: true,
-        data: {
-          logs: formattedLogs,
-          pagination: {
-            total: total,
-            limit: parseInt(limit),
-            offset: parseInt(offset),
-            current_page: Math.floor(offset / limit) + 1,
-            total_pages: Math.ceil(total / limit)
-          }
-        }
-      }).code(200);
-      
-    } catch (error) {
-      logger.error('Error getting ETL history:', error.message);
-      return h.response({
-        status: false,
-        message: 'Failed to get ETL history',
-        error: error.message
-      }).code(500);
-    }
-  },
-  detailActivity
-}
+  // Include detailActivity methods
+  ...detailActivity
+};
 
-module.exports = coursePerformanceService
+module.exports = coursePerformanceService;

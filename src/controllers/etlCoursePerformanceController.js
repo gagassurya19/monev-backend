@@ -7,15 +7,23 @@ const etlCoursePerformanceController = {
   // Manually trigger ETL process
   triggerETL: async (request, h) => {
     try {
+      const { start_date, concurrency = 4 } = request.payload || {}
+      
       logger.info('Manual ETL trigger requested', {
-        webhookToken: request.auth.credentials.token
+        webhookToken: request.auth.credentials.token,
+        start_date,
+        concurrency
       })
 
-      const result = await EtlCoursePerformanceService.runETL()
+      const result = await EtlCoursePerformanceService.runETL(start_date, concurrency)
 
       return h.response({
         message: 'ETL process completed successfully',
-        result
+        result,
+        parameters: {
+          start_date,
+          concurrency
+        }
       }).code(200)
     } catch (error) {
       logger.error('Manual ETL trigger failed:', error.message)

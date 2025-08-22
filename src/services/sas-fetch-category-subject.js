@@ -10,11 +10,10 @@ class SASFetchCategorySubjectService {
     this.db = database
     this.batchSize = config.etl?.batchSize || 1000
     this.startTime = Date.now()
-    this.monevDb = config.database.dbNames.main || 'monev_db'
     
     // API configuration
-    this.apiBaseUrl = process.env.CELOE_API_BASE_URL || 'https://celoe.telkomuniversity.ac.id/api/v1'
-    this.apiKey = process.env.CELOE_API_KEY
+    this.apiBaseUrl = process.env.EXTERNAL_API_BASE_URL || 'https://celoe.telkomuniversity.ac.id/api/v1'
+    this.apiKey = process.env.EXTERNAL_API_KEY
     
     // Initialize universal services
     this.logService = new LogService()
@@ -207,7 +206,7 @@ class SASFetchCategorySubjectService {
 
         // Single bulk upsert query
         const bulkQuery = `
-          INSERT INTO ${this.monevDb}.monev_sas_categories 
+          INSERT INTO monev_sas_categories 
           (category_id, category_name, category_site, category_type, category_parent_id) 
           VALUES ${valuesString}
           ON DUPLICATE KEY UPDATE 
@@ -296,7 +295,7 @@ class SASFetchCategorySubjectService {
 
         // Single bulk upsert query
         const bulkQuery = `
-          INSERT INTO ${this.monevDb}.monev_sas_subjects 
+          INSERT INTO monev_sas_subjects 
           (subject_id, subject_code, subject_name, curriculum_year, category_id) 
           VALUES ${valuesString}
           ON DUPLICATE KEY UPDATE 

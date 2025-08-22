@@ -47,8 +47,8 @@ const etlStudentActivitySummaryService = {
   },
 
   // Main ETL function that runs all ETL operations
-  runETL: async () => {
-    const startTime = new Date()
+  runETL: async (start_date = null, concurrency = 4) => {
+    const startTime = start_date ? new Date(start_date) : new Date()
     let logId = null
     
     try {

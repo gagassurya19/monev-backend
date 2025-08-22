@@ -167,19 +167,19 @@ const coursePerformanceController = {
         offset: (page - 1) * limit
       }
 
-      const info = await CoursePerformanceService.detailActivity.getCourseActivityInfo(course_id, activity_type, activity_id);
+      const info = await CoursePerformanceService.getCourseActivityInfo(course_id, activity_type, activity_id);
 
       let students;
 
       switch (activity_type) {
         case 'quiz':
-          students = await CoursePerformanceService.detailActivity.getQuizStudents(request, h, activity_id, filters, pagination);
+          students = await CoursePerformanceService.getQuizStudents(request, h, activity_id, filters, pagination);
           break;
         case 'assign':
-          students = await CoursePerformanceService.detailActivity.getAssignmentStudents(request, h, activity_id, filters, pagination);
+          students = await CoursePerformanceService.getAssignmentStudents(request, h, activity_id, filters, pagination);
           break;
         case 'resource':
-          students = await CoursePerformanceService.detailActivity.getResourceStudents(request, h, activity_id, filters, pagination);
+          students = await CoursePerformanceService.getResourceStudents(request, h, activity_id, filters, pagination);
           break;
         default:
           throw Boom.badRequest('Invalid activity type');

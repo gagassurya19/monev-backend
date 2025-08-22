@@ -1,130 +1,209 @@
-const config = require('../../config')
+const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const config = require('../../config')
+const logger = require('../utils/logger')
 const database = require('../database/connection')
-const dbConfig = require('../../config/database')
-const bcrypt = require('bcrypt')
 
 const authService = {
-  // Generate a JWT token
-  generateToken: (payload, expiresIn = null) => {
-    const options = {}
-    if (expiresIn) {
-      options.expiresIn = expiresIn
-    } else {
-      options.expiresIn = config.jwt.expiresIn
-    }
-
-    return jwt.sign(payload, config.jwt.secret, options)
-  },
-
-  // Validate JWT token using secret key from environment
-  validateToken: (token) => {
-    if (!token) {
-      return false
-    }
-
+  // Login user
+  login: async (username, password) => {
     try {
-      // First try to verify with our secret key
-      const decoded = jwt.verify(token, config.jwt.secret)
-      return decoded
+      // Find user by username
+      const userRows = await database.query(
+        'SELECT * FROM monev_users WHERE username = ?',
+        [username]
+      )
+
+      if (!userRows || userRows.length === 0) {
+        throw new Error('User not found')
+      }
+
+      const user = userRows[0]
+
+      // Check if password is correct
+      const isPasswordValid = await bcrypt.compare(password, user.password)
+      if (!isPasswordValid) {
+        throw new Error('Invalid password')
+      }
+
+      // Check if user is active
+      if (user.admin !== 1) {
+        throw new Error('User account is not active')
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        {
+          id: user.id,
+          username: user.username,
+          sub: user.sub,
+          name: user.name,
+          kampus: user.kampus,
+          fakultas: user.fakultas,
+          prodi: user.prodi,
+          admin: user.admin
+        },
+        config.jwt.secret,
+        { expiresIn: config.jwt.expiresIn }
+      )
+
+      return {
+        success: true,
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          kampus: user.kampus,
+          fakultas: user.fakultas,
+          prodi: user.prodi,
+          admin: user.admin
+        }
+      }
     } catch (error) {
-      // If verification fails, try to validate as external token
-      return authService.validateExternalToken(token)
+      logger.error('Login failed:', error.message)
+      throw error
     }
   },
 
-  // Validate external JWT token without signature verification
-  validateExternalToken: (token) => {
-    if (!token) {
-      return false
-    }
-
+  // Verify JWT token
+  verifyToken: async (token) => {
     try {
-      // Decode token without signature verification
-      const decoded = jwt.decode(token, { complete: false })
+      const decoded = jwt.verify(token, config.jwt.secret)
 
       if (!decoded) {
-        return false
+        throw new Error('User not found')
       }
 
-      // Validate token structure - ensure required fields exist
-      if (!decoded.sub) {
-        return false
+      return {
+        success: true,
+        user: decoded
       }
-
-      // Check if token is expired
-      if (decoded.exp && Math.floor(Date.now() / 1000) >= decoded.exp) {
-        return false
-      }
-
-      // Return the decoded payload
-      return decoded
     } catch (error) {
-      return false
+      logger.error('Token verification failed:', error.message)
+      throw error
     }
   },
 
-  // Verify and decode JWT token
-  verifyJwtToken: (token) => {
+  // Get user profile
+  getUserProfile: async (userId) => {
     try {
-      // First try to verify with our secret key
-      return jwt.verify(token, config.jwt.secret)
-    } catch (error) {
-      // If verification fails, try to validate as external token
-      const externalValidation = authService.validateExternalToken(token)
-      if (externalValidation) {
-        return externalValidation
+      const userRows = await database.query(
+        'SELECT id, username, name, kampus, fakultas, prodi, admin, created_at FROM monev_users WHERE id = ?',
+        [userId]
+      )
+
+      if (!userRows || userRows.length === 0) {
+        throw new Error('User not found')
       }
-      throw new Error(`JWT verification failed: ${error.message}`)
+
+      return {
+        success: true,
+        user: userRows[0]
+      }
+    } catch (error) {
+      logger.error('Get user profile failed:', error.message)
+      throw error
     }
   },
 
-  // Generate a JWT token with platform-compatible payload structure
-  generateJwtToken: (payload = {}) => {
-    // Default payload structure matching external platform
-    const defaultPayload = {
-      sub: 'default-user',
-      name: 'Default User',
-      kampus: '',
-      fakultas: '',
-      prodi: '',
-      admin: false
-    }
+  // Change password
+  changePassword: async (userId, currentPassword, newPassword) => {
+    try {
+      // Get current user
+      const userRows = await database.query(
+        'SELECT * FROM monev_users WHERE id = ?',
+        [userId]
+      )
 
-    // Merge with provided payload
-    const finalPayload = {
-      ...defaultPayload,
-      ...payload
-    }
+      if (!userRows || userRows.length === 0) {
+        throw new Error('User not found')
+      }
 
-    return authService.generateToken(finalPayload, '30d') // 30 days expiration
+      const user = userRows[0]
+
+      // Verify current password
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password)
+      if (!isCurrentPasswordValid) {
+        throw new Error('Current password is incorrect')
+      }
+
+      // Hash new password
+      const hashedNewPassword = await bcrypt.hash(newPassword, config.security.saltRounds)
+
+      // Update password
+      await database.query(
+        'UPDATE monev_users SET password = ? WHERE id = ?',
+        [hashedNewPassword, userId]
+      )
+
+      return {
+        success: true,
+        message: 'Password changed successfully'
+      }
+    } catch (error) {
+      logger.error('Change password failed:', error.message)
+      throw error
+    }
   },
 
+  // Admin login
   loginAdmin: async (username, password) => {
-    const user = await database.query(`
-      SELECT * FROM ${dbConfig.dbNames.main}.monev_users ua
-      WHERE ua.username = ?
-      `, [username])
+    try {
+      // Find user by username
+      const userRows = await database.query(
+        'SELECT * FROM monev_users WHERE username = ?',
+        [username]
+      )
 
-    if (user.length === 0) {
-      return false
-    }
+      if (!userRows || userRows.length === 0) {
+        throw new Error('User not found')
+      }
 
-    // Compare the provided password with the stored hashed password
-    const isPasswordValid = await bcrypt.compare(password, user[0].password)
-    
-    if (!isPasswordValid) {
-      return false
-    }
+      const user = userRows[0]
 
-    const token = authService.generateJwtToken({
-      sub: user[0].username,
-      name: user[0].username,
-      admin: true
-    })
+      // Check if password is correct
+      const isPasswordValid = await bcrypt.compare(password, user.password)
+      if (!isPasswordValid) {
+        throw new Error('Invalid password')
+      }
 
-    return {
-      token,
+      // Check if user is admin (admin field is tinyint(1) - 0 or 1)
+      if (user.admin !== 1) {
+        throw new Error('User is not an admin')
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        {
+          id: user.id,
+          username: user.username,
+          sub: user.username,
+          name: user.name,
+          kampus: user.kampus,
+          fakultas: user.fakultas,
+          prodi: user.prodi,
+          admin: user.admin
+        },
+        config.jwt.secret,
+        { expiresIn: config.jwt.expiresIn }
+      )
+
+      return {
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          kampus: user.kampus,
+          fakultas: user.fakultas,
+          prodi: user.prodi,
+          admin: user.admin
+        }
+      }
+    } catch (error) {
+      logger.error('Admin login failed:', error.message)
+      throw error
     }
   }
 }

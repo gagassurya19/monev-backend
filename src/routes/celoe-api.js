@@ -11,6 +11,9 @@ const routes = [
       description: 'Run SAS ETL pipeline on external CELOE API',
       notes: 'Proxy endpoint to start SAS ETL pipeline on the external CELOE API',
       tags: ['api', 'celoe', 'etl', 'sas'],
+      validate: {
+        payload: validators.sasETLRun
+      },
       auth: 'jwt'
     }
   },
@@ -74,6 +77,9 @@ const routes = [
       description: 'Run CP ETL pipeline on external CELOE API',
       notes: 'Proxy endpoint to start CP ETL pipeline on the external CELOE API',
       tags: ['api', 'celoe', 'etl', 'cp'],
+      validate: {
+        payload: validators.cpETLRun
+      },
       auth: 'jwt'
     }
   },

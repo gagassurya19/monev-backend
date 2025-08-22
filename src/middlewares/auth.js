@@ -7,7 +7,7 @@ const jwtAuth = {
 
   implementation: (server, options) => {
     return {
-      authenticate: (request, h) => {
+      authenticate: async (request, h) => {
         let token = null
 
         // Check for token in Authorization header first
@@ -24,29 +24,38 @@ const jwtAuth = {
           throw Boom.unauthorized('JWT token missing')
         }
 
-        // Validate JWT token using secret key
-        const validationResult = authService.validateToken(token)
+        try {
+          // Validate JWT token using authService
+          const validationResult = await authService.verifyToken(token)
 
-        if (!validationResult) {
+          if (!validationResult || !validationResult.success) {
+            throw Boom.unauthorized('Invalid JWT token')
+          }
+
+          const user = validationResult.user
+
+          // Return user credentials with platform-compatible structure
+          return h.authenticated({
+            credentials: {
+              sub: user.sub || user.username,
+              name: user.name || 'Unknown User',
+              kampus: user.kampus || '',
+              fakultas: user.fakultas || '',
+              prodi: user.prodi || '',
+              admin: user.admin || false,
+              token,
+              isValid: true,
+              exp: user.exp,
+              iat: user.iat
+            },
+            artifacts: { token }
+          })
+        } catch (error) {
+          if (error.isBoom) {
+            throw error
+          }
           throw Boom.unauthorized('Invalid JWT token')
         }
-
-        // Return user credentials with platform-compatible structure
-        return h.authenticated({
-          credentials: {
-            sub: validationResult.sub || validationResult.userId,
-            name: validationResult.name || 'Unknown User',
-            kampus: validationResult.kampus || '',
-            fakultas: validationResult.fakultas || '',
-            prodi: validationResult.prodi || '',
-            admin: validationResult.admin || false,
-            token,
-            isValid: true,
-            exp: validationResult.exp,
-            iat: validationResult.iat
-          },
-          artifacts: { token }
-        })
       }
     }
   }
