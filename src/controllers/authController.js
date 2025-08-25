@@ -12,37 +12,35 @@ const authController = {
         throw Boom.badRequest('Token is required')
       }
 
-      const validationResult = AuthService.validateToken(token)
+      // Use the existing verifyToken method from authService
+      const validationResult = await AuthService.verifyToken(token)
 
-      if (!validationResult) {
+      if (!validationResult || !validationResult.success) {
         logger.warn('Invalid token validation attempt', { token: `${token.substring(0, 10)}...` })
         throw Boom.unauthorized('Invalid token')
       }
 
-      // Process validation result with platform-compatible structure
-      const tokenInfo = {
-        ...validationResult,
-        token,
-        isValid: true
-      }
+      const user = validationResult.user
 
       logger.info('JWT token validated successfully', {
-        sub: tokenInfo.sub || tokenInfo.userId,
-        hasExpiry: !!tokenInfo.exp
+        sub: user.sub || user.username,
+        hasExpiry: !!user.exp
       })
 
       return h.response({
         message: 'Token is valid',
         data: {
-          sub: tokenInfo.sub || tokenInfo.userId,
-          name: tokenInfo.name || 'Unknown User',
-          kampus: tokenInfo.kampus || '',
-          fakultas: tokenInfo.fakultas || '',
-          prodi: tokenInfo.prodi || '',
-          admin: tokenInfo.admin || false,
-          isValid: tokenInfo.isValid,
-          ...(tokenInfo.exp && { expiresAt: new Date(tokenInfo.exp * 1000).toISOString() }),
-          ...(tokenInfo.iat && { issuedAt: new Date(tokenInfo.iat * 1000).toISOString() })
+          id: user.id,
+          username: user.username,
+          sub: user.sub || user.username,
+          name: user.name || 'Unknown User',
+          kampus: user.kampus || '',
+          fakultas: user.fakultas || '',
+          prodi: user.prodi || '',
+          admin: user.admin || false,
+          isValid: true,
+          ...(user.exp && { expiresAt: new Date(user.exp * 1000).toISOString() }),
+          ...(user.iat && { issuedAt: new Date(user.iat * 1000).toISOString() })
         }
       }).code(200)
     } catch (error) {
@@ -57,33 +55,24 @@ const authController = {
     try {
       const payload = request.payload || {}
 
-      // Default payload structure matching external platform
-      const tokenPayload = {
-        sub: 'test-user',
-        name: 'Test User',
-        kampus: '',
-        fakultas: '',
-        prodi: '',
-        admin: false,
-        ...payload
+      // Validate required fields
+      if (!payload.id || !payload.username || !payload.name || !payload.expirationMinutes || !payload.userRole) {
+        throw Boom.badRequest('Missing required fields: id, username, name, expirationMinutes, userRole')
       }
 
-      const token = AuthService.generateJwtToken(tokenPayload)
+      const result = await AuthService.generateJwtToken(payload)
 
       logger.info('JWT token generated successfully', {
-        sub: tokenPayload.sub,
-        name: tokenPayload.name,
-        admin: tokenPayload.admin
+        id: payload.id,
+        username: payload.username,
+        name: payload.name,
+        userRole: payload.userRole
       })
 
-      return h.response({
-        message: 'JWT token generated successfully',
-        token,
-        payload: tokenPayload,
-        expiresIn: '30 days'
-      }).code(201)
+      return h.response(result).code(200)
     } catch (error) {
       logger.error('Token generation failed:', error.message)
+      if (error.isBoom) throw error
       throw Boom.badImplementation('Token generation failed')
     }
   },

@@ -4,16 +4,13 @@ const Joi = require('joi')
 
 const routes = [
   {
-    method: 'POST',
+    method: 'GET',
     path: '/validate',
     handler: authController.validateToken,
     options: {
       description: 'Validate JWT token',
-      notes: 'Validates a JWT token with platform-compatible payload structure',
+      notes: 'Validates a JWT token from query parameter',
       tags: ['api', 'auth'],
-      validate: {
-        payload: validators.tokenPayloadSchema
-      },
       auth: false
     }
   },
@@ -23,17 +20,16 @@ const routes = [
     handler: authController.generateToken,
     options: {
       description: 'Generate a new JWT token',
-      notes: 'Generates a new JWT token with platform-compatible payload structure',
+      notes: 'Generates a new JWT token with custom payload structure',
       tags: ['api', 'auth'],
       validate: {
         payload: Joi.object({
-          sub: Joi.string().default('test-user'),
-          name: Joi.string().default('Test User'),
-          kampus: Joi.string().default(''),
-          fakultas: Joi.string().default(''),
-          prodi: Joi.string().default(''),
-          admin: Joi.boolean().default(false)
-        }).optional()
+          id: Joi.string().required(),
+          username: Joi.string().required(),
+          name: Joi.string().required(),
+          expirationMinutes: Joi.number().integer().min(1).max(525600).required(),
+          userRole: Joi.string().valid('admin', 'user').required()
+        })
       },
       auth: false
     }

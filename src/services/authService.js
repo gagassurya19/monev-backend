@@ -205,6 +205,66 @@ const authService = {
       logger.error('Admin login failed:', error.message)
       throw error
     }
+  },
+
+  // Generate JWT token with custom payload
+  generateJwtToken: async (payload) => {
+    try {
+      const { id, username, name, expirationMinutes, userRole, kampus, fakultas, prodi } = payload;
+
+      // Validate required fields
+      if (!id || !username || !name || !expirationMinutes || !userRole) {
+        throw new Error('Missing required fields: id, username, name, expirationMinutes, userRole');
+      }
+
+      // Validate expirationMinutes
+      if (expirationMinutes <= 0 || expirationMinutes > 525600) { // Max 1 year
+        throw new Error('expirationMinutes must be between 1 and 525600 (1 year)');
+      }
+
+      // Create token payload
+      const now = Math.floor(Date.now() / 1000);
+      const tokenPayload = {
+        id: parseInt(id) || 1,
+        username,
+        sub: username,
+        name,
+        kampus: kampus || '',
+        fakultas: fakultas || '',
+        prodi: prodi || '',
+        admin: userRole === 'admin' ? 1 : 0,
+        exp: now + (expirationMinutes * 60),
+        iat: now
+      };
+
+      // Generate JWT token
+      const token = jwt.sign(tokenPayload, config.jwt.secret, { algorithm: 'HS256' });
+
+      // Decode token to get info
+      const decoded = jwt.decode(token);
+      
+      return {
+        success: true,
+        message: 'Token generated successfully',
+        data: {
+          token,
+          tokenInfo: {
+            header: {
+              alg: 'HS256',
+              typ: 'JWT'
+            },
+            payload: decoded,
+            expiresIn: expirationMinutes * 60, // in seconds
+            isExpired: false
+          },
+          generatedAt: new Date().toISOString()
+        }
+      };
+
+    } catch (error) {
+      logger.error('Token generation failed:', error.message);
+      throw error;
+    }
   }
 }
 
