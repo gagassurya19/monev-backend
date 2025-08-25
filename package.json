@@ -14,7 +14,9 @@
     "setup:db": "bash scripts/setup_database.sh",
     "db:backup": "bash scripts/backup_database.sh",
     "quick-setup": "bash scripts/quick-setup.sh",
-    "migrate:tables": "bash scripts/migrate_tables.sh"
+    "migrate:tables": "bash scripts/migrate_tables.sh",
+    "seed:admin": "node scripts/seed_admin_user.js",
+    "seed:admin:super": "cross-env CREATE_SUPERADMIN=true node scripts/seed_admin_user.js"
   },
   "keywords": [
     "hapi",
