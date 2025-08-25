@@ -27,6 +27,7 @@ const sasSummaryController = {
 
   getTable: async (request, h) => {
     try {
+      console.log("request.query ======== ",JSON.stringify(request.query))
       const result = await sasSummaryService.getSummaryTable(request.query)
       return h.response(result).code(200)
     } catch (error) {

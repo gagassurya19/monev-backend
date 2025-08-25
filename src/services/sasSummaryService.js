@@ -21,7 +21,7 @@ function buildFilters(query) {
   const where = []
   const params = []
 
-  // Date range
+  // Date range (kept for backward compatibility but not used in view queries)
   let dateStart = query.date_start
   let dateEnd = query.date_end
   if (!dateStart || !dateEnd) {
@@ -29,81 +29,121 @@ function buildFilters(query) {
     dateStart = def.start
     dateEnd = def.end
   }
-  where.push('uae.extraction_date BETWEEN ? AND ?')
-  params.push(dateStart, dateEnd)
 
-  // Fakultas filter
+  // University filter (site from view)
+  if(query.university){
+    where.push('site = ?')
+    params.push(query.university)
+  }
+
+  // Fakultas filter (faculty_id from view)
   if (query.fakultas_id) {
-    where.push('c.faculty_id = ?')
+    where.push('faculty_id = ?')
     params.push(query.fakultas_id)
   }
 
-  // Prodi filter
+  // Prodi filter (program_id from view)
   if (query.prodi_id) {
-    where.push('c.program_id = ?')
+    where.push('program_id = ?')
     params.push(query.prodi_id)
   }
 
-  // Subject filter
-  if (query.subject_ids) {
+  // Subject filter (id from view)
+  if (query.subject_id) {
+    // Single subject filter
+    where.push('id = ?')
+    params.push(query.subject_id)
+  } else if (query.subject_ids) {
+    // Multiple subjects filter
     const ids = String(query.subject_ids)
       .split(',')
       .map(s => s.trim())
       .filter(Boolean)
     if (ids.length > 0) {
-      where.push(`c.subject_id IN (${ids.map(() => '?').join(',')})`)
+      where.push(`id IN (${ids.map(() => '?').join(',')})`)
       params.push(...ids)
     }
   }
 
-  // University filter (not modeled in schema; noop placeholder)
-  if (query.university) {
-    // If later we have a mapping table, add it here.
-  }
-
-  return { whereClause: where.length ? `WHERE ${where.join(' AND ')}` : '', params, dateStart, dateEnd }
+  return { whereClause: where.length ? `AND ${where.join(' AND ')}` : '', params, dateStart, dateEnd }
 }
 
 function getGroupSelect(groupBy) {
   switch (groupBy) {
     case 'kampus':
-      return `COALESCE(sp.category_site, 'UNKNOWN')`
+    case 'site':
+      return `COALESCE(site, 'UNKNOWN')`
     case 'fakultas':
-      return `COALESCE(fc.category_name, CONCAT('FAC_', c.faculty_id))`
+      return `fakultas`
     case 'prodi':
-      return `COALESCE(sp.category_name, CONCAT('PRODI_', c.program_id))`
+      return `program_studi`
     case 'subject':
+      return `COALESCE(course_shortname, 'UNKNOWN')`
     default:
-      return `COALESCE(c.subject_id, 'UNKNOWN')`
+      return `COALESCE(course_shortname, 'UNKNOWN')`
   }
 }
 
 const sasSummaryService = {
   getChartAggregation: async (query) => {
     try {
-      const groupBy = GROUP_BY_DIMENSIONS.has(query.group_by) ? query.group_by : 'fakultas'
+      // Auto-determine the appropriate grouping level based on filters
+      let autoGroupBy = 'site' // default
+      
+      // Check for most specific filter first (highest level of detail)
+      if (query.subject_id) {
+        // if there is subject_id show only one subject by id
+        autoGroupBy = 'subject'
+        // Add subject_id filter to whereClause
+        if (!query.subject_ids) {
+          query.subject_ids = query.subject_id
+        }
+      } else if (query.prodi_id) {
+        // If filtering by program, show course/subject level
+        autoGroupBy = 'subject'
+      } else if (query.fakultas_id) {
+        // If filtering by faculty, show program level
+        autoGroupBy = 'prodi'
+      } else if (query.university) {
+        // If filtering by university, show faculty level
+        autoGroupBy = 'fakultas'
+      } else {
+        // Use manual group_by if no filters, or default to faculty level
+        autoGroupBy = 'site'
+      }
+      
       const { whereClause, params, dateStart, dateEnd } = buildFilters(query)
 
-      const groupSelect = getGroupSelect(groupBy)
+      // Pagination parameters
+      const limit = Number(query.limit) > 0 ? Number(query.limit) : 10
+      const offset = Number(query.offset) > 0 ? Number(query.offset) : 0
+
+      const groupSelect = getGroupSelect(autoGroupBy)
 
       const sql = `
         SELECT 
           ${groupSelect} AS category,
-          SUM(uae.file_views) AS file,
-          SUM(uae.video_views) AS video,
-          SUM(uae.forum_views) AS forum,
-          SUM(uae.quiz_views) AS quiz,
-          SUM(uae.assignment_views) AS assignment,
-          SUM(uae.url_views) AS url
-        FROM monev_sas_user_activity_etl uae
-        JOIN monev_sas_courses c ON c.course_id = uae.course_id
-        LEFT JOIN monev_sas_categories fc ON fc.category_id = c.faculty_id AND fc.category_type = 'FACULTY'
-        LEFT JOIN monev_sas_categories sp ON sp.category_id = c.program_id AND sp.category_type = 'STUDYPROGRAM'
-        ${whereClause}
-        GROUP BY category
-        ORDER BY category ASC
+          SUM(file) AS file,
+          SUM(video) AS video,
+          SUM(forum) AS forum,
+          SUM(quiz) AS quiz,
+          SUM(assignment) AS assignment,
+          SUM(url) AS url,
+          (SUM(file) + SUM(video) + SUM(forum) + SUM(quiz) + SUM(assignment) + SUM(url)) AS total_activities
+        FROM v_sas_course_subject_summary
+        WHERE 1=1 ${whereClause} ${autoGroupBy === 'site' ? 'AND site IS NOT NULL' : ''}
+        GROUP BY ${groupSelect}
+        ORDER BY 8 DESC
+        LIMIT ${limit} OFFSET ${offset}
       `
 
+      // Debug logging
+      console.log('Auto Group By:', autoGroupBy)
+      console.log('Group Select:', groupSelect)
+      console.log('Chart SQL:', sql)
+      console.log('Chart params:', params)
+      console.log('whereClause:', whereClause)
+      
       const rows = await database.query(sql, params)
       const data = rows.map(r => ({
         category: r.category,
@@ -118,13 +158,20 @@ const sasSummaryService = {
       return {
         status: true,
         filters: {
-          group_by: groupBy,
+          group_by: autoGroupBy,
+          auto_determined: true,
           university: query.university || '',
           fakultas_id: query.fakultas_id || '',
           prodi_id: query.prodi_id || '',
+          subject_id: query.subject_id || '',
           subject_ids: query.subject_ids || '',
           date_start: dateStart,
           date_end: dateEnd
+        },
+        pagination: {
+          limit,
+          offset,
+          total_items: data.length
         },
         data
       }
@@ -139,20 +186,19 @@ const sasSummaryService = {
       const { whereClause, params, dateStart, dateEnd } = buildFilters(query)
 
       // Distribution and totals
+      // Distribution and totals from view
       const distSql = `
         SELECT 
-          SUM(uae.file_views) AS file,
-          SUM(uae.video_views) AS video,
-          SUM(uae.forum_views) AS forum,
-          SUM(uae.quiz_views) AS quiz,
-          SUM(uae.assignment_views) AS assignment,
-          SUM(uae.url_views) AS url,
-          SUM(uae.total_views) AS total_activities,
-          AVG(uae.avg_activity_per_student_per_day) AS average_score
-        FROM monev_sas_user_activity_etl uae
-        JOIN monev_sas_courses c ON c.course_id = uae.course_id
-        LEFT JOIN monev_sas_categories sp ON sp.category_id = c.program_id AND sp.category_type = 'STUDYPROGRAM'
-        ${whereClause}
+          SUM(file) AS file,
+          SUM(video) AS video,
+          SUM(forum) AS forum,
+          SUM(quiz) AS quiz,
+          SUM(assignment) AS assignment,
+          SUM(url) AS url,
+          SUM(sum) AS total_activities,
+          AVG(avg_activity_per_student_per_day) AS average_score
+        FROM v_sas_course_subject_summary
+        WHERE 1=1 ${whereClause}
       `
 
       const [dist] = await database.query(distSql, params)
@@ -161,69 +207,50 @@ const sasSummaryService = {
       // This will give us 6 instead of 12 by taking only the most recent record per course
       const activeSql = `
         SELECT 
-          SUM(t.num_students) AS total_students,
-          SUM(t.num_teachers) AS total_teachers
-        FROM (
-          SELECT 
-            uae.course_id,
-            MAX(uae.extraction_date) as latest_date,
-            MAX(uae.num_students) as num_students,
-            MAX(uae.num_teachers) as num_teachers
-          FROM monev_sas_user_activity_etl uae
-          JOIN monev_sas_courses c ON c.course_id = uae.course_id
-          LEFT JOIN monev_sas_categories sp ON sp.category_id = c.program_id AND sp.category_type = 'STUDYPROGRAM'
-          ${whereClause}
-          GROUP BY uae.course_id
-        ) t
+          SUM(num_student) AS total_students,
+          SUM(num_teacher) AS total_teachers
+        FROM v_sas_course_subject_summary
+        WHERE 1=1 ${whereClause}
       `
       const [active] = await database.query(activeSql, params)
       
       // Debug logging
-      logger.info('Active users query result:', { active, params, whereClause })
+      logger.info('Active users query result (from view):', { active })
       
       // Additional debugging: check individual records to see why we get 12 instead of 6
       const debugSql = `
         SELECT 
-          uae.course_id,
-          uae.extraction_date,
-          uae.num_students,
-          uae.num_teachers,
-          c.course_name,
-          c.subject_id
-        FROM monev_sas_user_activity_etl uae
-        JOIN monev_sas_courses c ON c.course_id = uae.course_id
-        LEFT JOIN monev_sas_categories sp ON sp.category_id = c.program_id AND sp.category_type = 'STUDYPROGRAM'
-        ${whereClause}
-        ORDER BY uae.course_id, uae.extraction_date
+          id,
+          course_name,
+          num_student AS num_students,
+          num_teacher AS num_teachers,
+          site,
+          fakultas,
+          program_studi
+        FROM v_sas_course_subject_summary
+        WHERE 1=1 ${whereClause}
+        ORDER BY id
       `
       const debugRecords = await database.query(debugSql, params)
-      logger.info('Debug: Individual records breakdown:', { 
-        totalRecords: debugRecords.length,
-        records: debugRecords.map(r => ({
-          course_id: r.course_id,
-          date: r.extraction_date,
-          students: r.num_students,
-          teachers: r.num_teachers,
-          course_name: r.course_name,
-          subject_id: r.subject_id
-        }))
-      })
+    //   logger.info('Debug: Individual records breakdown:', { 
+    //     totalRecords: debugRecords.length,
+    //     records: debugRecords.map(r => ({
+    //       course_id: r.course_id,
+    //       date: r.extraction_date,
+    //       students: r.num_students,
+    //       teachers: r.num_teachers,
+    //       course_name: r.course_name,
+    //       subject_id: r.subject_id
+    //     }))
+    //   })
 
       // Completion rate: fraction of courses with any activity in range
       const completionSql = `
         SELECT 
-          SUM(CASE WHEN t.total_views_sum > 0 THEN 1 ELSE 0 END) AS active_courses,
+          SUM(CASE WHEN sum > 0 THEN 1 ELSE 0 END) AS active_courses,
           COUNT(*) AS total_courses
-        FROM (
-          SELECT 
-            uae.course_id,
-            SUM(uae.total_views) AS total_views_sum
-          FROM monev_sas_user_activity_etl uae
-          JOIN monev_sas_courses c ON c.course_id = uae.course_id
-          LEFT JOIN monev_sas_categories sp ON sp.category_id = c.program_id AND sp.category_type = 'STUDYPROGRAM'
-          ${whereClause}
-          GROUP BY uae.course_id
-        ) t
+        FROM v_sas_course_subject_summary
+        WHERE 1=1 ${whereClause}
       `
       const [comp] = await database.query(completionSql, params)
 
@@ -233,7 +260,7 @@ const sasSummaryService = {
       const totalTeachers = Number(active?.total_teachers || 0)
       const activeUsers = totalStudents + totalTeachers
       const completionRate = comp && comp.total_courses > 0 
-        ? Number((Number(comp.active_courses || 0) / Number(comp.total_courses || 1)).toFixed(2))
+        ? (Number((Number(comp.active_courses || 0) / Number(comp.total_courses || 1))) * 100).toFixed(2)
         : 0
 
       const distribution = {
@@ -273,6 +300,8 @@ const sasSummaryService = {
     try {
       const { whereClause, params, dateStart, dateEnd } = buildFilters(query)
 
+      console.log(whereClause)
+
       const page = Number(query.page) > 0 ? Number(query.page) : 1
       const limit = Number(query.limit) > 0 ? Number(query.limit) : 10
       const offset = (page - 1) * limit
@@ -304,36 +333,13 @@ const sasSummaryService = {
       const sortByKey = sortMap[query.sort_by] || 'sum'
       const sortOrder = String(query.sort_order).toLowerCase() === 'asc' ? 'ASC' : 'DESC'
 
-      // Base subquery grouped by course
+      // Use prebuilt view instead of inline aggregation
       const baseSql = `
-        FROM (
-          SELECT 
-            c.course_id AS id,
-            c.course_name AS course_name,
-            c.course_shortname AS course_shortname,
-            COALESCE(sp.category_site, 'UNKNOWN') AS site,
-            COALESCE(fc.category_name, CONCAT('FAC_', c.faculty_id)) AS fakultas,
-            COALESCE(sp.category_name, CONCAT('PRODI_', c.program_id)) AS program_studi,
-            MAX(uae.num_teachers) AS num_teacher,
-            MAX(uae.num_students) AS num_student,
-            SUM(uae.file_views) AS file,
-            SUM(uae.video_views) AS video,
-            SUM(uae.forum_views) AS forum,
-            SUM(uae.quiz_views) AS quiz,
-            SUM(uae.assignment_views) AS assignment,
-            SUM(uae.url_views) AS url,
-            SUM(uae.file_views + uae.video_views + uae.forum_views + uae.quiz_views + uae.assignment_views + uae.url_views) AS sum,
-            AVG(uae.avg_activity_per_student_per_day) AS avg_activity_per_student_per_day
-          FROM monev_sas_user_activity_etl uae
-          JOIN monev_sas_courses c ON c.course_id = uae.course_id
-          LEFT JOIN monev_sas_categories fc ON fc.category_id = c.faculty_id AND fc.category_type = 'FACULTY'
-          LEFT JOIN monev_sas_categories sp ON sp.category_id = c.program_id AND sp.category_type = 'STUDYPROGRAM'
-          ${whereClause}
-          GROUP BY c.course_id
-        ) t
-        WHERE 1=1 ${searchClause}
+        FROM v_sas_course_subject_summary t
+        WHERE 1=1 ${whereClause} ${searchClause}
       `
 
+    //   console.log(baseSql,whereClause,searchClause)
       const countSql = `SELECT COUNT(*) AS total ${baseSql}`
       const [{ total }] = await database.query(countSql, [...params, ...searchParams])
 
