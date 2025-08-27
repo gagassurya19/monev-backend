@@ -4,6 +4,92 @@ const logger = require('../utils/logger')
 const database = require('../database/connection')
 
 const etlCoursePerformanceController = {
+  // Orchestrate CeLOE ETL then Monev ETL CP
+  orchestrateETL: async (request, h) => {
+    const celoeApiController = require('./celoeApiController')
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
+    const { start_date = '2024-01-01', concurrency = 4 } = request.payload || {}
+    const { normalizeDateYMD } = require('../utils/helpers')
+    const normalizedStartDate = normalizeDateYMD(start_date)
+    const orchestrationId = `orc_${Date.now()}`
+    const steps = [{ name: 'celoe', status: 'running', startedAt: new Date().toISOString() }]
+
+    // Minimal mock of h to capture controller response values
+    const makeH = () => ({
+      response: (val) => ({
+        code: (statusCode) => ({ value: val, statusCode })
+      })
+    })
+
+    // Run orchestration in background
+    setImmediate(async () => {
+      const bgSteps = steps
+      try {
+        // Step 1: CeLOE ETL via controller
+        const step1 = bgSteps[0]
+        await celoeApiController.runCPETL({ payload: { start_date: normalizedStartDate, concurrency } }, makeH())
+
+        let attempts = 0
+        while (attempts < 180) {
+          const statusResult = await celoeApiController.getCPETLStatus({}, makeH())
+          const payload = statusResult?.value || statusResult
+          const lastRun = payload?.data?.last_run || payload?.last_run
+          const code = lastRun?.status_code
+          if (code === 1) {
+            step1.status = 'finished'
+            step1.finishedAt = new Date().toISOString()
+            break
+          }
+          if (code === 3) throw new Error('CeLOE ETL failed')
+          attempts += 1
+          await sleep(5000)
+        }
+        if (attempts >= 180) throw new Error('CeLOE ETL timeout')
+
+        // Step 2: Monev ETL CP using local service
+        logger.info('Starting Monev ETL after CeLOE finished', { orchestrationId })
+        const step2 = { name: 'monev', status: 'running', startedAt: new Date().toISOString() }
+        bgSteps.push(step2)
+
+        await EtlCoursePerformanceService.runETL(normalizedStartDate, concurrency)
+
+        attempts = 0
+        while (attempts < 180) {
+          const status = await EtlCoursePerformanceService.getETLStatus()
+          const isRunning = status?.isRunning
+          const lastStatus = status?.lastRun?.status
+          if (isRunning === false && lastStatus) {
+            if (lastStatus !== 'finished') throw new Error('Monev ETL failed')
+            step2.status = 'finished'
+            step2.finishedAt = new Date().toISOString()
+            break
+          }
+          attempts += 1
+          await sleep(5000)
+        }
+        if (attempts >= 180) throw new Error('Monev ETL timeout')
+
+        logger.info('ETL Orchestration completed', { orchestrationId })
+      } catch (error) {
+        const last = (bgSteps[bgSteps.length - 1]) || bgSteps[0]
+        if (last) {
+          last.status = 'failed'
+          last.finishedAt = new Date().toISOString()
+          last.error = error?.message || String(error)
+        }
+        logger.error('ETL Orchestration failed', { orchestrationId, error: error?.message || String(error) })
+      }
+    })
+
+    // Return immediately while background job runs
+    return h.response({
+      success: true,
+      message: 'Orchestration started',
+      orchestrationId,
+      steps
+    }).code(202)
+  },
   // Manually trigger ETL process
   triggerETL: async (request, h) => {
     try {

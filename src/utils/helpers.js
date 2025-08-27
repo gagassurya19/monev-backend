@@ -46,10 +46,34 @@ const isValidEmail = (email) => {
   return emailRegex.test(email)
 }
 
+const normalizeDateYMD = (value) => {
+  if (!value) return undefined
+  if (typeof value === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+    if (value.length >= 10) return value.slice(0, 10)
+    return value
+  }
+  if (value instanceof Date) {
+    const year = value.getUTCFullYear()
+    const month = String(value.getUTCMonth() + 1).padStart(2, '0')
+    const day = String(value.getUTCDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  const d = new Date(value)
+  if (!isNaN(d.getTime())) {
+    const year = d.getUTCFullYear()
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0')
+    const day = String(d.getUTCDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  return '2024-01-01'
+}
+
 module.exports = {
   getPaginationMeta,
   sanitizeLikePattern,
   generateRandomString,
   formatDateForMySQL,
-  isValidEmail
+  isValidEmail,
+  normalizeDateYMD
 }

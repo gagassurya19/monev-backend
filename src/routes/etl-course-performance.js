@@ -3,6 +3,20 @@ const validators = require('../validators/etlCoursePerformanceValidators')
 
 const routes = [
   {
+    method: 'POST', // POST /api/etl-cp/orchestrate - Orchestrate CeLOE + Monev ETL CP
+    path: '/orchestrate',
+    handler: etlCoursePerformanceController.orchestrateETL,
+    options: {
+      description: 'Orchestrate CeLOE ETL then Monev ETL CP',
+      notes: 'Runs CeLOE ETL first, polls until completion, then runs Monev ETL CP and polls until finished',
+      tags: ['api', 'etl', 'orchestrate'],
+      validate: {
+        payload: validators.etlTriggerBody
+      },
+      auth: 'jwt'
+    }
+  },
+  {
     method: 'POST', // POST /api/etl/run - Manually trigger ETL process
     path: '/run',
     handler: etlCoursePerformanceController.triggerETL,
