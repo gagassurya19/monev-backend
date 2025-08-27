@@ -18,9 +18,7 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 
-
-
-CREATE TABLE `monev_cp_activity_summary` (
+CREATE TABLE IF NOT EXISTS `monev_cp_activity_summary` (
   `id` int NOT NULL AUTO_INCREMENT,
   `course_id` bigint NOT NULL,
   `section` int DEFAULT NULL,
@@ -38,7 +36,7 @@ CREATE TABLE `monev_cp_activity_summary` (
   KEY `idx_activity_type` (`activity_type`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2410 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_cp_course_summary` (
+CREATE TABLE IF NOT EXISTS `monev_cp_course_summary` (
   `id` int NOT NULL AUTO_INCREMENT,
   `course_id` bigint NOT NULL,
   `course_name` varchar(255) NOT NULL,
@@ -52,7 +50,7 @@ CREATE TABLE `monev_cp_course_summary` (
   UNIQUE KEY `course_id` (`course_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5447 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_cp_fetch_logs` (
+CREATE TABLE IF NOT EXISTS `monev_cp_fetch_logs` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `offset` int NOT NULL DEFAULT '0',
   `numrow` int NOT NULL DEFAULT '0',
@@ -66,7 +64,7 @@ CREATE TABLE `monev_cp_fetch_logs` (
   KEY `idx_end_date` (`end_date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_cp_student_assignment_detail` (
+CREATE TABLE IF NOT EXISTS `monev_cp_student_assignment_detail` (
   `id` int NOT NULL AUTO_INCREMENT,
   `assignment_id` bigint NOT NULL,
   `user_id` bigint NOT NULL,
@@ -82,7 +80,7 @@ CREATE TABLE `monev_cp_student_assignment_detail` (
   KEY `idx_nim` (`nim`)
 ) ENGINE=InnoDB AUTO_INCREMENT=471 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_cp_student_profile` (
+CREATE TABLE IF NOT EXISTS `monev_cp_student_profile` (
   `id` int NOT NULL AUTO_INCREMENT,
   `user_id` bigint NOT NULL,
   `idnumber` varchar(255) DEFAULT NULL,
@@ -96,7 +94,7 @@ CREATE TABLE `monev_cp_student_profile` (
   KEY `idx_idnumber` (`idnumber`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2297 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_cp_student_quiz_detail` (
+CREATE TABLE IF NOT EXISTS `monev_cp_student_quiz_detail` (
   `id` int NOT NULL AUTO_INCREMENT,
   `quiz_id` bigint NOT NULL,
   `user_id` bigint NOT NULL,
@@ -115,7 +113,7 @@ CREATE TABLE `monev_cp_student_quiz_detail` (
   KEY `idx_nim` (`nim`)
 ) ENGINE=InnoDB AUTO_INCREMENT=389 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_cp_student_resource_access` (
+CREATE TABLE IF NOT EXISTS `monev_cp_student_resource_access` (
   `id` int NOT NULL AUTO_INCREMENT,
   `resource_id` bigint NOT NULL,
   `user_id` bigint NOT NULL,
@@ -130,7 +128,7 @@ CREATE TABLE `monev_cp_student_resource_access` (
   KEY `idx_waktu_akses` (`waktu_akses`)
 ) ENGINE=InnoDB AUTO_INCREMENT=693 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_activity_counts_etl` (
+CREATE TABLE IF NOT EXISTS `monev_sas_activity_counts_etl` (
   `id` int NOT NULL AUTO_INCREMENT,
   `courseid` int NOT NULL,
   `file_views` int DEFAULT '0',
@@ -148,7 +146,7 @@ CREATE TABLE `monev_sas_activity_counts_etl` (
   KEY `idx_extraction_date` (`extraction_date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=329 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_categories` (
+CREATE TABLE IF NOT EXISTS `monev_sas_categories` (
   `category_id` int NOT NULL,
   `category_name` varchar(255) NOT NULL,
   `category_site` varchar(50) DEFAULT NULL,
@@ -159,7 +157,7 @@ CREATE TABLE `monev_sas_categories` (
   KEY `idx_category_parent` (`category_parent_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_courses` (
+CREATE TABLE IF NOT EXISTS `monev_sas_courses` (
   `course_id` int NOT NULL,
   `subject_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `course_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -175,7 +173,7 @@ CREATE TABLE `monev_sas_courses` (
   KEY `idx_faculty_id` (`faculty_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_logs` (
+CREATE TABLE IF NOT EXISTS `monev_sas_logs` (
   `id` int NOT NULL AUTO_INCREMENT,
   `type_run` enum('fetch_category_subject','fetch_course_performance','fetch_student_activity_summary') NOT NULL,
   `start_date` datetime DEFAULT NULL,
@@ -192,7 +190,7 @@ CREATE TABLE `monev_sas_logs` (
   KEY `idx_type_status` (`type_run`,`status`)
 ) ENGINE=InnoDB AUTO_INCREMENT=272 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_realtime_logs` (
+CREATE TABLE IF NOT EXISTS `monev_sas_realtime_logs` (
   `id` int NOT NULL AUTO_INCREMENT,
   `log_id` int NOT NULL,
   `level` enum('info','warning','error','debug','progress') NOT NULL,
@@ -207,7 +205,7 @@ CREATE TABLE `monev_sas_realtime_logs` (
   CONSTRAINT `monev_sas_realtime_logs_ibfk_1` FOREIGN KEY (`log_id`) REFERENCES `monev_sas_logs` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=18116 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_subjects` (
+CREATE TABLE IF NOT EXISTS `monev_sas_subjects` (
   `subject_id` int NOT NULL,
   `subject_code` varchar(20) NOT NULL,
   `subject_name` varchar(255) NOT NULL,
@@ -219,7 +217,7 @@ CREATE TABLE `monev_sas_subjects` (
   KEY `idx_category_id` (`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_user_activity_etl` (
+CREATE TABLE IF NOT EXISTS `monev_sas_user_activity_etl` (
   `id` int NOT NULL AUTO_INCREMENT,
   `course_id` int NOT NULL,
   `num_teachers` int DEFAULT '0',
@@ -243,7 +241,7 @@ CREATE TABLE `monev_sas_user_activity_etl` (
   CONSTRAINT `fk_monev_sas_user_activity_course` FOREIGN KEY (`course_id`) REFERENCES `monev_sas_courses` (`course_id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=507 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_user_counts_etl` (
+CREATE TABLE IF NOT EXISTS `monev_sas_user_counts_etl` (
   `id` int NOT NULL AUTO_INCREMENT,
   `courseid` int NOT NULL,
   `num_students` int DEFAULT '0',
@@ -256,7 +254,7 @@ CREATE TABLE `monev_sas_user_counts_etl` (
   KEY `idx_extraction_date` (`extraction_date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=351 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_users` (
+CREATE TABLE IF NOT EXISTS `monev_users` (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -276,12 +274,60 @@ CREATE TABLE `monev_users` (
   UNIQUE KEY `sub` (`sub`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Table for storing SAS users login activity ETL data
+CREATE TABLE IF NOT EXISTS `monev_sas_users_login_activity_etl` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `response_id` bigint(20) NOT NULL,
+  `extraction_date` date NOT NULL,
+  `hour` tinyint(2) NOT NULL,
+  `user_id` bigint(20) NOT NULL,
+  `username` varchar(100) NOT NULL,
+  `full_name` varchar(255) NOT NULL,
+  `login_count` int(11) DEFAULT 0,
+  `first_login_time` bigint(20) DEFAULT NULL,
+  `last_login_time` bigint(20) DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `firstname` varchar(100) NOT NULL,
+  `lastname` varchar(100) NOT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `lastaccess` bigint(20) DEFAULT NULL,
+  `idnumber` varchar(255) DEFAULT NULL,
+  `firstaccess` bigint(20) DEFAULT NULL,
+  `lastlogin` bigint(20) DEFAULT NULL,
+  `currentlogin` bigint(20) DEFAULT NULL,
+  `role_id` bigint(20) DEFAULT NULL,
+  `role_name` varchar(100) DEFAULT NULL,
+  `role_shortname` varchar(50) DEFAULT NULL,
+  `course_id` bigint(20) DEFAULT NULL,
+  `context_id` bigint(20) DEFAULT NULL,
+  `context_level` int(11) DEFAULT NULL,
+  `enrolid` bigint(20) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_unique_user_hour_extraction` (`user_id`, `hour`, `extraction_date`),
+  KEY `idx_extraction_date` (`extraction_date`),
+  KEY `idx_hour` (`hour`),
+  KEY `idx_username` (`username`),
+  KEY `idx_course_id` (`course_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_email` (`email`),
+  KEY `idx_lastaccess` (`lastaccess`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40014 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+CREATE TABLE IF NOT EXISTS `monev_sas_user_login_etl_logs` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `type_run` enum('execute_get_data_with_pagination') NOT NULL,
+  `start_date` datetime DEFAULT NULL,
+  `end_date` datetime DEFAULT NULL,
+  `duration` varchar(20) DEFAULT NULL,
+  `status` enum('success','failed','in_progress') DEFAULT 'in_progress',
+  `total_records` int DEFAULT NULL,
+  `offset` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_type_run` (`type_run`),
+  KEY `idx_status` (`status`),
+  KEY `idx_start_date` (`start_date`),
+  KEY `idx_end_date` (`end_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

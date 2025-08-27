@@ -10,8 +10,8 @@ echo ""
 TARGET_DB_HOST=${TARGET_DB_HOST:-"localhost"}
 TARGET_DB_PORT=${TARGET_DB_PORT:-"3306"}
 TARGET_DB_NAME=${TARGET_DB_NAME:-"monev_db"}
-TARGET_DB_USER=${TARGET_DB_USER:-"root"}
-TARGET_DB_PASSWORD=${TARGET_DB_PASSWORD:-""}
+TARGET_DB_USER=${TARGET_DB_USER:-"monev_user"}
+TARGET_DB_PASSWORD=${TARGET_DB_PASSWORD:-"monev_password"}
 
 # Direktori migration
 MIGRATION_DIR="scripts"
@@ -44,7 +44,7 @@ if [ ! -f "$sql_file" ]; then
     exit 1
 fi
 
-if [ -z "$sql_files" ]; then
+if [ -z "$sql_file" ]; then
     echo "❌ Tidak ada file .sql untuk di-migrate di direktori $MIGRATION_DIR"
     echo ""
     echo "Langkah yang diperlukan:"
