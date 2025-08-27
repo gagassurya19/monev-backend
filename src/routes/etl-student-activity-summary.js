@@ -3,6 +3,20 @@ const validators = require('../validators/etlStudentActivitySummaryValidators')
 
 const routes = [
   {
+    method: 'POST', // POST /api/etl-sas/orchestrate - Orchestrate CeLOE + Monev SAS ETL
+    path: '/orchestrate',
+    handler: etlStudentActivitySummaryController.orchestrateETL,
+    options: {
+      description: 'Orchestrate CeLOE SAS ETL then Monev SAS ETL',
+      notes: 'Runs CeLOE SAS ETL first, polls until completion, then runs Monev SAS ETL and polls until finished',
+      tags: ['api', 'etl', 'sas', 'orchestrate'],
+      validate: {
+        payload: validators.etlTriggerBody
+      },
+      auth: 'jwt'
+    }
+  },
+  {
     method: 'POST', // POST /api/etl-sas/run - Manually trigger SAS ETL process
     path: '/run',
     handler: etlStudentActivitySummaryController.triggerETL,
@@ -13,7 +27,7 @@ const routes = [
       validate: {
         query: validators.etlTokenOnly
       },
-              auth: 'jwt'
+      auth: 'jwt'
     }
   },
   {
@@ -73,4 +87,4 @@ const routes = [
   }
 ]
 
-module.exports = routes 
+module.exports = routes
