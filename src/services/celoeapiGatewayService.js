@@ -146,14 +146,12 @@ class CeloeApiGatewayService {
   // ===== SAS Users Login Activity ETL Methods =====
   // Run SAS Users Login Activity ETL Pipeline
   async runSASUsersLoginActivityETL(
-    startDate = null,
-    endDate = null,
-    concurrency = 1
+    concurrency = 2,
+    extraction_date = new Date().toISOString().slice(0, 10)
   ) {
     const data = {};
-    if (startDate) data.start_date = startDate;
-    if (endDate) data.end_date = endDate;
     if (concurrency) data.concurrency = concurrency;
+    if (extraction_date) data.extraction_date = extraction_date;
 
     return await this.makeRequest(
       "POST",
