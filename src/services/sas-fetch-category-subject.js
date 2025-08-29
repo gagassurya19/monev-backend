@@ -18,6 +18,15 @@ class SASFetchCategorySubjectService {
     // Initialize universal services
     this.logService = new LogService()
     this.realtimeLogService = new RealtimeLogService()
+    
+    // ETL process control properties
+    this.isRunning = false
+    this.stopRequested = false
+    this.currentLogId = null
+    this.currentAbortController = null
+    this.currentDbOperation = null
+    this.processingTimeout = null
+    this.processingInterval = null
   }
 
   /**
@@ -184,6 +193,13 @@ class SASFetchCategorySubjectService {
       const totalBatches = batches.length
 
       for (const batch of batches) {
+        // Check for stop request before processing each batch
+        if (this.stopRequested) {
+          logger.info('ETL process stopped during categories processing')
+          await this.addRealtimeLog(logId, 'warning', 'ETL process stopped during categories processing', null)
+          break
+        }
+
         batchNumber++
         const batchStartTime = Date.now()
 
@@ -273,6 +289,13 @@ class SASFetchCategorySubjectService {
       const totalBatches = batches.length
 
       for (const batch of batches) {
+        // Check for stop request before processing each batch
+        if (this.stopRequested) {
+          logger.info('ETL process stopped during subjects processing')
+          await this.addRealtimeLog(logId, 'warning', 'ETL process stopped during subjects processing', null)
+          break
+        }
+
         batchNumber++
         const batchStartTime = Date.now()
 
@@ -316,7 +339,7 @@ class SASFetchCategorySubjectService {
         await this.addRealtimeLog(
           logId,
           'info',
-          `Subjects batch ${batchNumber}/${totalBatches}: ${savedCount}/${totalCount} processed (${recordsPerSecond} records/sec)`,
+          `Subjects processing ${batchNumber}/${totalBatches}: ${savedCount}/${totalCount} processed (${recordsPerSecond} records/sec)`,
           progressPercent
         )
 
@@ -345,10 +368,25 @@ class SASFetchCategorySubjectService {
     let logId = null
 
     try {
+      // Check if already running
+      if (this.isRunning) {
+        throw new Error('ETL process is already running')
+      }
+
+      // Initialize process state
+      this.isRunning = true
+      this.stopRequested = false
+      this.currentLogId = null
+      this.currentAbortController = new AbortController()
+      this.currentDbOperation = null
+      this.processingTimeout = null
+      this.processingInterval = null
+
       logger.info('Starting ETL SAS Category Subject process')
 
       // Create log entry
       logId = await this.createEtlLog()
+      this.currentLogId = logId
 
       // Add initial realtime log
       await this.addRealtimeLog(logId, 'info', 'ETL SAS Category Subject process started', 0)
@@ -361,8 +399,18 @@ class SASFetchCategorySubjectService {
       await this.addRealtimeLog(logId, 'info', '=== PHASE 1: CATEGORIES PROCESSING ===', 10)
       logger.info('Starting categories processing phase')
 
+      // Check for stop request
+      if (this.stopRequested) {
+        throw new Error('ETL process stopped by user request during categories phase')
+      }
+
       try {
         const categories = await this.fetchExternalApiWithLogging('/course/category', logId, 'categories', 15, 25)
+
+        // Check for stop request after API call
+        if (this.stopRequested) {
+          throw new Error('ETL process stopped by user request after fetching categories')
+        }
 
         if (categories.length > 0) {
           categoriesSaved = await this.saveCategories(categories, logId)
@@ -379,8 +427,18 @@ class SASFetchCategorySubjectService {
       await this.addRealtimeLog(logId, 'info', '=== PHASE 2: SUBJECTS PROCESSING ===', 55)
       logger.info('Starting subjects processing phase')
 
+      // Check for stop request
+      if (this.stopRequested) {
+        throw new Error('ETL process stopped by user request during subjects phase')
+      }
+
       try {
         const subjects = await this.fetchExternalApiWithLogging('/course/subject', logId, 'subjects', 60, 70)
+
+        // Check for stop request after API call
+        if (this.stopRequested) {
+          throw new Error('ETL process stopped by user request after fetching subjects')
+        }
 
         if (subjects.length > 0) {
           subjectsSaved = await this.saveSubjects(subjects, logId)
@@ -420,6 +478,17 @@ class SASFetchCategorySubjectService {
       }
 
       throw error
+    } finally {
+      // Always cleanup process state
+      this.isRunning = false
+      this.currentLogId = null
+      this.currentAbortController = null
+      this.currentDbOperation = null
+      this.processingTimeout = null
+      this.processingInterval = null
+      this.stopRequested = false
+      
+      logger.info('ETL process state cleaned up')
     }
   }
 
@@ -432,6 +501,126 @@ class SASFetchCategorySubjectService {
     } catch (error) {
       logger.error('Failed to check ETL running status:', error.message)
       return false
+    }
+  }
+
+  /**
+   * Stop ETL process forcefully and update logs
+   */
+  async stopEtlProcess() {
+    try {
+      if (!this.isRunning) {
+        throw new Error('ETL process is not currently running')
+      }
+
+      logger.info('Force stop ETL process requested')
+      
+      // Set stop flag immediately
+      this.stopRequested = true
+      
+      // Add realtime log about stop request
+      if (this.currentLogId) {
+        await this.addRealtimeLog(this.currentLogId, 'warning', 'ETL process stop requested by user', null)
+      }
+      
+      // Force abort any ongoing operations
+      if (this.currentAbortController) {
+        logger.info('Aborting ongoing operations...')
+        this.currentAbortController.abort()
+      }
+      
+      // Clear any pending timeouts/intervals
+      if (this.processingTimeout) {
+        clearTimeout(this.processingTimeout)
+        this.processingTimeout = null
+        logger.info('Cleared processing timeout')
+      }
+      
+      if (this.processingInterval) {
+        clearInterval(this.processingInterval)
+        this.processingInterval = null
+        logger.info('Cleared processing interval')
+      }
+      
+      // Force kill any ongoing database operations
+      if (this.currentDbOperation) {
+        try {
+          // Try to kill the current database connection/operation
+          if (this.db && this.db.connection) {
+            // Kill any long-running queries
+            await this.db.query('KILL QUERY ?', [this.db.connection.threadId])
+            logger.info('Killed ongoing database query')
+          }
+        } catch (dbError) {
+          logger.warn('Could not kill database operation:', dbError.message)
+        }
+      }
+      
+      // Wait a bit for cleanup to complete
+      await this.sleep(500)
+      
+      // Update log status to stopped with force stop information
+      if (this.currentLogId) {
+        try {
+          await this.updateEtlLog(this.currentLogId, 'stopped', 0)
+          await this.addRealtimeLog(
+            this.currentLogId, 
+            'warning', 
+            'ETL process forcefully stopped by user request', 
+            null
+          )
+          
+          // Add detailed stop information
+          await this.addRealtimeLog(
+            this.currentLogId,
+            'info',
+            `Process stopped at: ${new Date().toISOString()}. All operations aborted.`,
+            null
+          )
+        } catch (logError) {
+          logger.warn('Could not update logs during stop:', logError.message)
+        }
+      }
+      
+      // Reset all running state and flags
+      this.isRunning = false
+      this.currentLogId = null
+      this.stopRequested = false
+      this.currentAbortController = null
+      this.currentDbOperation = null
+      
+      logger.info('ETL process forcefully stopped and cleaned up successfully')
+      
+      return {
+        status: 'force_stopped',
+        message: 'ETL process forcefully stopped and all operations aborted',
+        stopped_at: new Date().toISOString(),
+        cleanup_performed: true,
+        operations_aborted: true
+      }
+      
+    } catch (error) {
+      logger.error('Failed to stop ETL process:', error.message)
+      
+      // Even if there's an error, try to force cleanup
+      try {
+        this.isRunning = false
+        this.stopRequested = true
+        this.currentLogId = null
+        
+        if (this.currentAbortController) {
+          this.currentAbortController.abort()
+        }
+        
+        if (this.processingTimeout) clearTimeout(this.processingTimeout)
+        if (this.processingInterval) clearInterval(this.processingInterval)
+        
+        logger.info('Emergency cleanup performed despite error')
+      } catch (cleanupError) {
+        logger.error('Emergency cleanup also failed:', cleanupError.message)
+      }
+      
+      throw error
     }
   }
 

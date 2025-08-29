@@ -161,6 +161,39 @@ const sasFetchCategorySubjectController = {
         }
     },
 
+    // Stop ETL process for fetching categories and subjects
+    stopSASCategorySubjectETL: async (request, h) => {
+        try {
+            await sasFetchCategorySubjectController.init()
+
+            logger.info('SAS Category Subject ETL stop process requested')
+
+            // Check if ETL is currently running
+            const isRunning = await sasFetchCategorySubjectController.logService.isEtlRunning('fetch_category_subject')
+            if (!isRunning) {
+                throw Boom.conflict('SAS Category Subject ETL process is not currently running')
+            }
+
+            // Stop ETL process
+            const result = await sasFetchCategorySubjectController.service.stopEtlProcess()
+
+            return h.response({
+                status: true,
+                message: 'SAS Category Subject ETL process stopped successfully',
+                data: {
+                    status: 'stopped',
+                    message: 'ETL process has been stopped',
+                    stopped_at: new Date().toISOString(),
+                    ...result
+                }
+            }).code(200)
+        } catch (error) {
+            logger.error('SAS Category Subject ETL stop process failed:', error.message)
+            if (error.isBoom) throw error
+            throw Boom.badImplementation('Failed to stop SAS Category Subject ETL process')
+        }
+    },
+
     // Get SAS Category Subject ETL logs history
     getSASCategorySubjectLogs: async (request, h) => {
         try {

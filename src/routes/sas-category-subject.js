@@ -82,6 +82,16 @@ const routes = [
     }
   },
   {
+    method: 'POST',
+    path: '/category-subject/stop',
+    handler: sasFetchCategorySubjectController.stopSASCategorySubjectETL,
+    options: {
+      description: 'sas-category-subject | Stop running ETL process for fetching categories and subjects',
+      tags: ['api', 'sas-category-subject'],
+      auth: 'jwt'
+    }
+  },
+  {
     method: 'GET',
     path: '/category-subject/logs',
     handler: sasFetchCategorySubjectController.getSASCategorySubjectLogs,
