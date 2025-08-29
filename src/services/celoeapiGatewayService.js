@@ -171,6 +171,26 @@ class CeloeApiGatewayService {
       params
     );
   }
+
+  async runSPETL(concurrency = 2) {
+    const data = {};
+    if (concurrency) data.concurrency = concurrency;
+
+    return await this.makeRequest("POST", "/api/sp_etl/run", data);
+  }
+
+  async exportSPETLData(batch_size = 100, table_name = null, offset = 0) {
+    const data = {};
+    if (batch_size) data.batch_size = batch_size;
+    if (table_name) data.table_name = table_name;
+    if (offset) data.offset = offset;
+
+    return await this.makeRequest(
+      "POST",
+      "/api/sp_etl/export_incremental",
+      data
+    );
+  }
 }
 
 module.exports = new CeloeApiGatewayService();

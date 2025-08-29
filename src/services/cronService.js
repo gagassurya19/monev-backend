@@ -2,6 +2,7 @@ const cron = require("node-cron");
 const etlCoursePerformanceService = require("./etlCoursePerformanceService");
 const SASFetchCategorySubjectService = require("./sas-fetch-category-subject");
 const sasUserLoginActivityService = require("./sasUserLoginActivityService");
+const spETLService = require("./spEtlService");
 const logger = require("../utils/logger");
 
 class CronService {
@@ -12,6 +13,8 @@ class CronService {
     this.isETLCoursePerformanceRunning = false;
     this.isSASCategorySubjectRunning = false;
     this.isSASUsersLoginRunning = false;
+    this.spETLTask = null;
+    this.isSPETLRunning = false;
 
     // Load configuration from environment variables
     this.config = {
@@ -46,13 +49,22 @@ class CronService {
       // SAS Users Login ETL
       sasUsersLoginETL: {
         enabled: process.env.SAS_USERS_LOGIN_ETL_ENABLED === "true",
-        schedule: process.env.SAS_USERS_LOGIN_ETL_SCHEDULE || "* * * * *",
+        schedule: process.env.SAS_USERS_LOGIN_ETL_SCHEDULE || "0 * * * *",
         description:
           process.env.SAS_USERS_LOGIN_ETL_DESCRIPTION ||
           "Every hour at minute 0",
         timeout: parseInt(process.env.SAS_USERS_LOGIN_ETL_TIMEOUT) || 1800000,
         maxWaitTime:
           parseInt(process.env.SAS_USERS_LOGIN_ETL_MAX_WAIT_TIME) || 1800000,
+      },
+
+      // SP ETL
+      spETL: {
+        enabled: process.env.SP_ETL_ENABLED === "true",
+        schedule: process.env.SP_ETL_SCHEDULE || "0 * * * *",
+        description: process.env.SP_ETL_DESCRIPTION || "Every minute",
+        timeout: parseInt(process.env.SP_ETL_TIMEOUT) || 1800000,
+        maxWaitTime: parseInt(process.env.SP_ETL_MAX_WAIT_TIME) || 1800000,
       },
     };
   }
@@ -127,6 +139,25 @@ class CronService {
       logger.info(
         "SAS Users Login ETL cron job disabled via SAS_USERS_LOGIN_ETL_ENABLED=false"
       );
+    }
+
+    // Schedule SP ETL if enabled
+    if (this.config.spETL.enabled) {
+      this.spETLTask = cron.schedule(
+        this.config.spETL.schedule,
+        async () => {
+          await this.runSPETL();
+        },
+        {
+          scheduled: true,
+          timezone: this.config.timezone,
+        }
+      );
+      logger.info(
+        `SP ETL cron job scheduled: ${this.config.spETL.description}`
+      );
+    } else {
+      logger.info("SP ETL cron job disabled via SP_ETL_ENABLED=false");
     }
 
     logger.info("Multiple ETL cron jobs initialization completed");
@@ -345,6 +376,65 @@ class CronService {
     }
   }
 
+  // Run SP ETL with proper waiting logic
+  async runSPETL() {
+    // SP ETL can run every minute
+    let waitTime = 0;
+    const maxWaitTime = this.config.spETL.maxWaitTime;
+
+    if (this.isSPETLRunning) {
+      logger.warn(
+        "SP ETL process is already running, waiting for it to finish..."
+      );
+      while (this.isSPETLRunning && waitTime < maxWaitTime) {
+        await new Promise((resolve) => setTimeout(resolve, 10000));
+        waitTime += 10000;
+        logger.info(
+          `Waiting for SP ETL process to finish... (${Math.round(
+            waitTime / 1000
+          )}s)`
+        );
+      }
+
+      if (this.isSPETLRunning) {
+        logger.error(
+          `SP ETL process is still running after ${Math.round(
+            maxWaitTime / 1000
+          )}s, skipping this scheduled run`
+        );
+        return;
+      }
+
+      logger.info("Previous SP ETL process finished, proceeding with new run");
+    }
+
+    try {
+      this.isSPETLRunning = true;
+      logger.info("Starting scheduled SP ETL process");
+
+      // Set timeout for the SP process
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(
+          () => reject(new Error("SP ETL process timeout")),
+          this.config.spETL.timeout
+        );
+      });
+
+      const spETLPromise = spETLService.runCronSpEtl();
+
+      await Promise.race([spETLPromise, timeoutPromise]);
+
+      logger.info("Scheduled SP ETL process completed successfully");
+    } catch (error) {
+      logger.error("Scheduled SP ETL process failed:", {
+        message: error.message,
+        stack: error.stack,
+      });
+    } finally {
+      this.isSPETLRunning = false;
+    }
+  }
+
   // Start the cron jobs
   start() {
     if (
@@ -365,6 +455,11 @@ class CronService {
       logger.info("SAS Users Login ETL cron job started");
     }
 
+    if (this.config.spETL.enabled && this.spETLTask) {
+      this.spETLTask.start();
+      logger.info("SP ETL cron job started");
+    }
+
     logger.info("All enabled cron jobs started");
   }
 
@@ -383,6 +478,11 @@ class CronService {
     if (this.sasUsersLoginTask) {
       this.sasUsersLoginTask.stop();
       logger.info("SAS Users Login ETL cron job stopped");
+    }
+
+    if (this.spETLTask) {
+      this.spETLTask.stop();
+      logger.info("SP ETL cron job stopped");
     }
 
     logger.info("All cron jobs stopped");
@@ -408,6 +508,12 @@ class CronService {
       logger.info("SAS Users Login ETL cron job destroyed");
     }
 
+    if (this.spETLTask) {
+      this.spETLTask.destroy();
+      this.spETLTask = null;
+      logger.info("SP ETL cron job destroyed");
+    }
+
     logger.info("All cron jobs destroyed");
   }
 
@@ -426,6 +532,7 @@ class CronService {
         etlCoursePerformance: this.config.etlCoursePerformance,
         sasCategorySubject: this.config.sasCategorySubject,
         sasUsersLoginETL: this.config.sasUsersLoginETL,
+        spETL: this.config.spETL,
       },
 
       // ETL Course Performance Status
@@ -449,6 +556,13 @@ class CronService {
         ? this.sasUsersLoginTask.getStatus()
         : "not scheduled",
       isSASUsersLoginCurrentlyRunning: this.isSASUsersLoginRunning,
+
+      // SP ETL Status
+      spETLScheduled: !!this.spETLTask,
+      spETLRunning: this.spETLTask
+        ? this.spETLTask.getStatus()
+        : "not scheduled",
+      isSPETLCurrentlyRunning: this.isSPETLRunning,
 
       // General Status
       schedule: "0 * * * * (Every hour at minute 0)",

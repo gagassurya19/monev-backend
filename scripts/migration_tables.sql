@@ -331,3 +331,79 @@ CREATE TABLE IF NOT EXISTS `monev_sas_user_login_etl_logs` (
   KEY `idx_start_date` (`start_date`),
   KEY `idx_end_date` (`end_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Dumping structure for table celoeapi.sp_etl_detail
+DROP TABLE IF EXISTS `monev_sp_etl_detail`;
+CREATE TABLE IF NOT EXISTS `monev_sp_etl_detail` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `response_id` bigint(20) NOT NULL,
+  `user_id` bigint(20) NOT NULL COMMENT 'Moodle user ID',
+  `course_id` bigint(20) NOT NULL COMMENT 'Moodle course ID',
+  `course_name` varchar(254) NOT NULL COMMENT 'Course full name',
+  `module_type` varchar(50) NOT NULL COMMENT 'Module type (mod_quiz, mod_assign, mod_forum)',
+  `module_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'Name of the module (quiz name, forum name, assignment name)',
+  `object_id` bigint(20) DEFAULT NULL COMMENT 'Object ID (forum_id, assign_id, quiz_id)',
+  `grade` decimal(10,2) DEFAULT NULL COMMENT 'Grade for this module (nullable)',
+  `timecreated` bigint(20) DEFAULT NULL COMMENT 'Unix timestamp from Moodle log',
+  `log_id` bigint(20) DEFAULT NULL COMMENT 'Moodle log entry ID',
+  `action_type` varchar(50) DEFAULT NULL COMMENT 'Action type from Moodle log (viewed, created, updated, etc.)',
+  `extraction_date` date NOT NULL COMMENT 'Date for which data was extracted',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_course_module_object_timecreated_log_date` (`user_id`,`course_id`,`module_type`,`object_id`,`timecreated`,`log_id`,`extraction_date`,`response_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_course_id` (`course_id`),
+  KEY `idx_module_type` (`module_type`),
+  KEY `idx_object_id` (`object_id`),
+  KEY `idx_extraction_date` (`extraction_date`),
+  KEY `idx_user_course_module` (`user_id`,`course_id`,`module_type`),
+  KEY `idx_response_id` (`response_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=625 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table celoeapi.sp_etl_summary
+DROP TABLE IF EXISTS `monev_sp_etl_summary`;
+CREATE TABLE IF NOT EXISTS `monev_sp_etl_summary` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `response_id` bigint(20) NOT NULL,
+  `user_id` bigint(20) NOT NULL COMMENT 'Moodle user ID',
+  `username` varchar(100) NOT NULL COMMENT 'User username',
+  `firstname` varchar(100) NOT NULL COMMENT 'User first name',
+  `lastname` varchar(100) NOT NULL COMMENT 'User last name',
+  `total_course` int(11) NOT NULL DEFAULT 0 COMMENT 'Total number of courses enrolled',
+  `total_login` int(11) NOT NULL DEFAULT 0 COMMENT 'Total number of login days',
+  `total_activities` int(11) NOT NULL DEFAULT 0 COMMENT 'Total number of activities performed',
+  `extraction_date` date NOT NULL COMMENT 'Date for which data was extracted',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_date` (`user_id`,`extraction_date`,`response_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_username` (`username`),
+  KEY `idx_extraction_date` (`extraction_date`),
+  KEY `idx_total_course` (`total_course`),
+  KEY `idx_total_activities` (`total_activities`),
+  KEY `idx_user_date_activities` (`user_id`,`extraction_date`,`total_activities`),
+  KEY `idx_response_id` (`response_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Table for storing SP ETL logs
+DROP TABLE IF EXISTS `monev_sp_etl_logs`;
+CREATE TABLE IF NOT EXISTS `monev_sp_etl_logs` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `type_run` enum('execute_run_sp_etl','execute_sp_etl_summary','execute_sp_etl_detail') NOT NULL,
+  `start_date` datetime DEFAULT NULL,
+  `end_date` datetime DEFAULT NULL,
+  `duration` varchar(20) DEFAULT NULL,
+  `status` enum('success','failed','in_progress') DEFAULT 'in_progress',
+  `total_records` int DEFAULT NULL,
+  `offset` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_type_run` (`type_run`),
+  KEY `idx_status` (`status`),
+  KEY `idx_start_date` (`start_date`),
+  KEY `idx_end_date` (`end_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
