@@ -36,6 +36,21 @@ const celoeApiController = {
     }
   },
 
+  // Stop SAS ETL Pipeline
+  stopSASETL: async (request, h) => {
+    try {
+      logger.info('Stop SAS ETL pipeline requested')
+      
+      const result = await celoeApiGatewayService.stopSASETL()
+      
+      return h.response(result).code(200)
+    } catch (error) {
+      logger.error('Stop SAS ETL pipeline failed:', error.message)
+      if (error.isBoom) throw error
+      throw Boom.badImplementation('Failed to stop SAS ETL pipeline on external API')
+    }
+  },
+
   // Get SAS ETL Logs
   getSASETLLogs: async (request, h) => {
     try {
@@ -113,6 +128,21 @@ const celoeApiController = {
       logger.error('Clean CP ETL data failed:', error.message)
       if (error.isBoom) throw error
       throw Boom.badImplementation('Failed to clean CP ETL data on external API')
+    }
+  },
+
+  // Stop CP ETL Pipeline
+  stopCPETL: async (request, h) => {
+    try {
+      logger.info('Stop CP ETL pipeline requested')
+      
+      const result = await celoeApiGatewayService.stopCPETL()
+      
+      return h.response(result).code(200)
+    } catch (error) {
+      logger.error('Stop CP ETL pipeline failed:', error.message)
+      if (error.isBoom) throw error
+      throw Boom.badImplementation('Failed to stop CP ETL pipeline on external API')
     }
   },
 

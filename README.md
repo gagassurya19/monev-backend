@@ -61,7 +61,7 @@ monev-backend/
 
 - **Runtime**: Node.js (>=16.0.0)
 - **Framework**: Hapi.js 21.4.0
-- **Database**: MySQL 8.0+
+- **Database**: MySQL 5.7+ (mendukung MySQL 5.7 dan 8.0)
 - **Autentikasi**: JWT dengan bcrypt
 - **Validasi**: Validasi skema Joi
 - **Dokumentasi**: Swagger/OpenAPI
@@ -77,7 +77,7 @@ monev-backend/
 Sebelum menjalankan proyek ini, pastikan Anda memiliki:
 
 - **Node.js** (>=16.0.0)
-- **MySQL** (>=8.0)
+- **MySQL** (>=5.7, mendukung MySQL 5.7 dan 8.0)
 - **npm** atau **yarn** package manager
 - **Git** untuk kontrol versi
 
@@ -97,8 +97,20 @@ Script ini akan:
 - Memeriksa prasyarat (Node.js, MySQL)
 - Menginstal dependensi
 - Membuat konfigurasi lingkungan
-- Setup database
+- Setup database dengan pilihan versi MySQL (5.7 atau 8.0)
+- Menjalankan migration otomatis
 - Memulai server development
+
+#### Pilihan Versi MySQL
+
+Script setup akan meminta Anda memilih versi MySQL yang digunakan:
+
+- **MySQL 5.7**: Kompatibel dengan versi MySQL yang lebih lama
+- **MySQL 8.0**: Menggunakan fitur modern MySQL 8.0
+
+Script akan otomatis memilih file migration yang sesuai:
+- `migrations_tables_mysql5.7.sql` untuk MySQL 5.7
+- `migrations_tables_mysql8.0.sql` untuk MySQL 8.0
 
 ### Opsi 2: Setup Manual
 
@@ -229,7 +241,13 @@ Server akan mulai di `http://localhost:3001` (atau port yang ditentukan di file 
 
 ### 🔄 Migration Tabel (Otomatis)
 
-Script migration sudah tersedia dengan struktur tabel yang lengkap untuk Monev Backend. File `scripts/migration_tables.sql` berisi 19 tabel yang sudah dioptimasi:
+Script migration sudah tersedia dengan struktur tabel yang lengkap untuk Monev Backend. Script mendukung dua versi MySQL dengan file migration yang berbeda:
+
+#### Pilihan Versi MySQL:
+- **MySQL 5.7**: File `scripts/migrations_tables_mysql5.7.sql`
+- **MySQL 8.0**: File `scripts/migrations_tables_mysql8.0.sql`
+
+Setiap file berisi 19 tabel yang sudah dioptimasi untuk versi MySQL yang sesuai:
 
 #### Tabel yang Tersedia:
 - **Course Performance (CP)**: 7 tabel untuk monitoring performa kursus
@@ -238,23 +256,26 @@ Script migration sudah tersedia dengan struktur tabel yang lengkap untuk Monev B
 
 #### Langkah 1: Setup Database Baru
 ```bash
-# Setup database baru
+# Setup database baru dengan pilihan versi MySQL
 npm run setup:db
 ```
 
-#### Langkah 2: Migrate Tabel
+#### Langkah 2: Migrate Tabel (Opsional)
 ```bash
-# Migrate semua tabel yang diperlukan
+# Migrate semua tabel yang diperlukan dengan pilihan versi MySQL
 npm run migrate:tables
 ```
 
 #### Atau Langsung dengan Quick Setup
 ```bash
-# Quick setup akan otomatis migrate tabel jika ada file migration
+# Quick setup akan otomatis migrate tabel berdasarkan versi MySQL yang dipilih
 npm run quick-setup
 ```
 
-**Catatan**: Migration akan membuat semua tabel dengan struktur yang sudah dioptimasi, termasuk index dan foreign key yang tepat.
+**Catatan**: 
+- Script setup akan meminta Anda memilih versi MySQL (5.7 atau 8.0)
+- Migration akan otomatis memilih file yang sesuai dengan versi MySQL yang dipilih
+- Semua tabel dibuat dengan struktur yang sudah dioptimasi, termasuk index dan foreign key yang tepat
 
 #### Variabel Environment Tambahan (Opsional)
 File `.env.example` juga menyediakan konfigurasi opsional untuk:
@@ -302,13 +323,31 @@ npm run lint             # Jalankan ESLint
 npm run lint:fix         # Perbaiki masalah ESLint
 
 # Database
-npm run setup:db         # Setup database dan user
+npm run setup:db         # Setup database dengan pilihan versi MySQL
 npm run db:backup        # Buat backup database
-npm run migrate:tables   # Migrate tabel ke database baru
+npm run migrate:tables   # Migration tabel dengan pilihan versi MySQL
 
 # Semua Script Tersedia
 npm run                  # Lihat semua script yang tersedia
 ```
+
+### 🔧 Script Setup dengan Pilihan Versi MySQL
+
+Semua script setup database sekarang mendukung pilihan versi MySQL:
+
+- **`npm run quick-setup`**: Setup lengkap dengan pilihan versi MySQL
+- **`npm run setup:db`**: Setup database dengan pilihan versi MySQL dan migration otomatis
+- **`npm run migrate:tables`**: Migration manual dengan pilihan versi MySQL
+
+Script akan otomatis memilih file migration yang sesuai:
+- **MySQL 5.7** → `migrations_tables_mysql5.7.sql`
+- **MySQL 8.0** → `migrations_tables_mysql8.0.sql`
+
+**Keuntungan:**
+- ✅ Kompatibilitas dengan berbagai versi MySQL
+- ✅ Migration otomatis berdasarkan versi yang dipilih
+- ✅ Tidak perlu manual memilih file migration
+- ✅ Setup yang lebih user-friendly
 
 ## 📊 Fitur Utama
 

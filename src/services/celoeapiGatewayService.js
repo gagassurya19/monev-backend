@@ -61,6 +61,11 @@ class CeloeApiGatewayService {
     return await this.makeRequest('POST', '/api/etl_sas/clean', {})
   }
 
+  // Stop SAS ETL Pipeline
+  async stopSASETL() {
+    return await this.makeRequest('POST', '/api/etl_sas/stop_pipeline', {})
+  }
+
   // Get SAS ETL Logs
   async getSASETLLogs(limit = 50, offset = 0, status = null) {
     const params = { limit, offset }
@@ -103,6 +108,11 @@ class CeloeApiGatewayService {
   // Clean CP ETL Data
   async cleanCPETL() {
     return await this.makeRequest('POST', '/api/etl_cp/clean', {})
+  }
+
+  // Stop CP ETL Pipeline
+  async stopCPETL() {
+    return await this.makeRequest('POST', '/api/etl_cp/stop_pipeline', {})
   }
 
   // Get CP ETL Logs

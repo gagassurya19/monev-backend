@@ -20,14 +20,27 @@ class Database {
         waitForConnections: dbConfig.waitForConnections,
         queueLimit: dbConfig.queueLimit,
         charset: dbConfig.charset,
-        collation: dbConfig.collation,
+        // collation is not a valid mysql2 option; remove to avoid warnings
         multipleStatements: false, // Security best practice
         ssl: false // Configure based on your MySQL setup
       })
 
       logger.info('Database pool created successfully')
+      logger.info('Database pool config (safe)', {
+        host: dbConfig.host,
+        port: dbConfig.port,
+        database: dbConfig.database,
+        user: dbConfig.user,
+        connectionLimit: dbConfig.connectionLimit
+      })
     } catch (error) {
       logger.error('Failed to create database pool:', error.message)
+      logger.error('Database pool creation error details', {
+        code: error.code,
+        errno: error.errno,
+        fatal: error.fatal,
+        stack: error.stack
+      })
       throw error
     }
   }
@@ -49,7 +62,8 @@ class Database {
     } catch (error) {
       logger.error('Database query error:', {
         sql: `${sql.substring(0, 100)}...`, // Log only first 100 chars for security
-        error: error.message
+        error: error.message,
+        code: error.code
       })
       throw error
     } finally {
@@ -89,6 +103,12 @@ class Database {
       return true
     } catch (error) {
       logger.error('Database connection test failed:', error.message)
+      logger.error('Database connection test error details', {
+        code: error.code,
+        errno: error.errno,
+        fatal: error.fatal,
+        stack: error.stack
+      })
       throw error
     }
   }

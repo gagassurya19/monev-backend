@@ -36,7 +36,7 @@ CREATE TABLE `monev_cp_activity_summary` (
   PRIMARY KEY (`id`),
   KEY `idx_course_id` (`course_id`),
   KEY `idx_activity_type` (`activity_type`)
-) ENGINE=InnoDB AUTO_INCREMENT=2410 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2410 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `monev_cp_course_summary` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -50,7 +50,7 @@ CREATE TABLE `monev_cp_course_summary` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `course_id` (`course_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5447 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5447 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `monev_cp_fetch_logs` (
   `id` bigint NOT NULL AUTO_INCREMENT,
@@ -64,7 +64,7 @@ CREATE TABLE `monev_cp_fetch_logs` (
   KEY `idx_status` (`status`),
   KEY `idx_start_date` (`start_date`),
   KEY `idx_end_date` (`end_date`)
-) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `monev_cp_student_assignment_detail` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -80,7 +80,7 @@ CREATE TABLE `monev_cp_student_assignment_detail` (
   KEY `idx_assignment_id` (`assignment_id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_nim` (`nim`)
-) ENGINE=InnoDB AUTO_INCREMENT=471 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=471 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `monev_cp_student_profile` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -94,7 +94,7 @@ CREATE TABLE `monev_cp_student_profile` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_id` (`user_id`),
   KEY `idx_idnumber` (`idnumber`)
-) ENGINE=InnoDB AUTO_INCREMENT=2297 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2297 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `monev_cp_student_quiz_detail` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -113,7 +113,7 @@ CREATE TABLE `monev_cp_student_quiz_detail` (
   KEY `idx_quiz_id` (`quiz_id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_nim` (`nim`)
-) ENGINE=InnoDB AUTO_INCREMENT=389 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=389 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `monev_cp_student_resource_access` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -128,7 +128,7 @@ CREATE TABLE `monev_cp_student_resource_access` (
   KEY `idx_user_id` (`user_id`),
   KEY `idx_nim` (`nim`),
   KEY `idx_waktu_akses` (`waktu_akses`)
-) ENGINE=InnoDB AUTO_INCREMENT=693 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=693 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `monev_sas_activity_counts_etl` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -157,7 +157,7 @@ CREATE TABLE `monev_sas_categories` (
   PRIMARY KEY (`category_id`),
   KEY `idx_category_type` (`category_type`),
   KEY `idx_category_parent` (`category_parent_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `monev_sas_courses` (
   `course_id` int NOT NULL,
@@ -190,7 +190,7 @@ CREATE TABLE `monev_sas_logs` (
   KEY `idx_start_date` (`start_date`),
   KEY `idx_type_run` (`type_run`),
   KEY `idx_type_status` (`type_run`,`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=272 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=272 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `monev_sas_realtime_logs` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -205,7 +205,7 @@ CREATE TABLE `monev_sas_realtime_logs` (
   KEY `idx_level` (`level`),
   KEY `idx_timestamp` (`timestamp`),
   CONSTRAINT `monev_sas_realtime_logs_ibfk_1` FOREIGN KEY (`log_id`) REFERENCES `monev_sas_logs` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=18116 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=18116 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `monev_sas_subjects` (
   `subject_id` int NOT NULL,
@@ -217,7 +217,7 @@ CREATE TABLE `monev_sas_subjects` (
   KEY `idx_subject_code` (`subject_code`),
   KEY `idx_curriculum_year` (`curriculum_year`),
   KEY `idx_category_id` (`category_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `monev_sas_user_activity_etl` (
   `id` int NOT NULL AUTO_INCREMENT,

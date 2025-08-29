@@ -1,116 +1,107 @@
 #!/bin/bash
 
-# Script Migration Tabel ke Database Monev Backend
-# Script ini akan mengimport semua tabel yang sudah di-export
+# Script Migration Tabel Monev Backend
+# Script ini akan menjalankan migration tabel berdasarkan versi MySQL yang dipilih
 
-echo "=== Migration Tabel ke Database Monev Backend ==="
+echo "=== Migration Tabel Monev Backend ==="
+echo "Script ini akan menjalankan migration tabel untuk database Monev"
 echo ""
 
-# Konfigurasi database target
-TARGET_DB_HOST=${TARGET_DB_HOST:-"localhost"}
-TARGET_DB_PORT=${TARGET_DB_PORT:-"3306"}
-TARGET_DB_NAME=${TARGET_DB_NAME:-"monev_db"}
-TARGET_DB_USER=${TARGET_DB_USER:-"monev_user"}
-TARGET_DB_PASSWORD=${TARGET_DB_PASSWORD:-"monev_password"}
-
-# Direktori migration
-MIGRATION_DIR="scripts"
-
-echo "Database Target:"
-echo "  Host: $TARGET_DB_HOST:$TARGET_DB_PORT"
-echo "  Database: $TARGET_DB_NAME"
-echo "  User: $TARGET_DB_USER"
-echo ""
-
-# Periksa apakah direktori migration ada
-if [ ! -d "$MIGRATION_DIR" ]; then
-    echo "❌ Direktori migration tidak ditemukan: $MIGRATION_DIR"
-    echo ""
-    echo "Langkah yang diperlukan:"
-    echo "1. Jalankan dulu: npm run export:tables"
-    echo "2. Atau buat direktori $MIGRATION_DIR dengan file .sql tabel"
+# Periksa apakah MySQL terinstal
+if ! command -v mysql &> /dev/null; then
+    echo "❌ Error: MySQL tidak terinstal. Silakan instal MySQL terlebih dahulu."
     exit 1
 fi
 
-# Periksa apakah ada file migration_tables.sql
-sql_file="$MIGRATION_DIR/migration_tables.sql"
-
-if [ ! -f "$sql_file" ]; then
-    echo "❌ File migration tidak ditemukan: $sql_file"
-    echo ""
-    echo "Langkah yang diperlukan:"
-    echo "1. Pastikan file migration_tables.sql ada di direktori scripts/"
-    echo "2. File ini berisi struktur tabel yang akan di-migrate"
+# Periksa apakah file .env ada
+if [ ! -f .env ]; then
+    echo "❌ Error: File .env tidak ditemukan. Silakan jalankan setup database terlebih dahulu."
     exit 1
 fi
 
-if [ -z "$sql_files" ]; then
-    echo "❌ Tidak ada file .sql untuk di-migrate di direktori $MIGRATION_DIR"
-    echo ""
-    echo "Langkah yang diperlukan:"
-    echo "1. Jalankan dulu: npm run export:tables"
-    echo "2. Atau copy file .sql tabel ke direktori $MIGRATION_DIR"
+# Baca konfigurasi database yang diperlukan dari file .env
+load_env_var() {
+    local key="$1"
+    local value
+    value=$(grep -E "^${key}=" .env | head -n 1 | cut -d '=' -f2-)
+    # Hapus tanda kutip opsional di sekitarnya
+    value="${value%\"}"
+    value="${value#\"}"
+    value="${value%\'}"
+    value="${value#\'}"
+    echo "$value"
+}
+
+DB_HOST=$(load_env_var DB_HOST)
+DB_PORT=$(load_env_var DB_PORT)
+DB_NAME=$(load_env_var DB_NAME)
+DB_USER=$(load_env_var DB_USER)
+DB_PASSWORD=$(load_env_var DB_PASSWORD)
+
+echo "Konfigurasi Database:"
+echo "Host: $DB_HOST"
+echo "Port: $DB_PORT"
+echo "Database: $DB_NAME"
+echo "User: $DB_USER"
+echo ""
+
+# Pilih versi MySQL
+echo "Pilih versi MySQL yang Anda gunakan:"
+echo "1) MySQL 5.7"
+echo "2) MySQL 8.0"
+echo ""
+read -p "Masukkan pilihan (1 atau 2): " MYSQL_VERSION_CHOICE
+
+case $MYSQL_VERSION_CHOICE in
+    1)
+        MYSQL_VERSION="5.7"
+        MIGRATION_FILE="scripts/migrations_tables_mysql5.7.sql"
+        echo "✅ Anda memilih MySQL 5.7"
+        ;;
+    2)
+        MYSQL_VERSION="8.0"
+        MIGRATION_FILE="scripts/migrations_tables_mysql8.0.sql"
+        echo "✅ Anda memilih MySQL 8.0"
+        ;;
+    *)
+        echo "❌ Pilihan tidak valid. Menggunakan MySQL 8.0 sebagai default."
+        MYSQL_VERSION="8.0"
+        MIGRATION_FILE="scripts/migrations_tables_mysql8.0.sql"
+        ;;
+esac
+
+echo "📁 File migration yang akan digunakan: $MIGRATION_FILE"
+
+# Periksa apakah file migration ada
+if [ ! -f "$MIGRATION_FILE" ]; then
+    echo "❌ Error: File migration tidak ditemukan: $MIGRATION_FILE"
     exit 1
 fi
 
-echo "📋 File migration yang akan digunakan:"
-echo "  - $(basename "$sql_file")"
 echo ""
 
-# Test koneksi database
-echo "🔍 Testing koneksi database..."
-mysql -h $TARGET_DB_HOST -P $TARGET_DB_PORT -u $TARGET_DB_USER -p$TARGET_DB_PASSWORD \
-    -e "USE $TARGET_DB_NAME; SELECT 1;" > /dev/null 2>&1
+# Tanya password MySQL root (opsional)
+echo "Silakan masukkan password MySQL root Anda (tekan Enter jika tidak ada password):"
+read -s MYSQL_ROOT_PASSWORD
 
-if [ $? -ne 0 ]; then
-    echo "❌ Gagal koneksi ke database $TARGET_DB_NAME"
-    echo "Pastikan:"
-    echo "  1. Database $TARGET_DB_NAME sudah dibuat"
-    echo "  2. User $TARGET_DB_USER sudah dibuat dan memiliki hak akses"
-    echo "  3. Password yang benar"
-    echo ""
-    echo "Jalankan dulu: npm run setup:db"
-    exit 1
+echo ""
+echo "🚀 Menjalankan migration untuk MySQL $MYSQL_VERSION..."
+
+# Jalankan migration
+if [ -z "$MYSQL_ROOT_PASSWORD" ]; then
+    mysql -u root $DB_NAME < "$MIGRATION_FILE"
+else
+    mysql -u root -p$MYSQL_ROOT_PASSWORD $DB_NAME < "$MIGRATION_FILE"
 fi
-
-echo "✅ Koneksi database berhasil"
-echo ""
-
-# Mulai migration
-echo "🔄 Memulai migration tabel..."
-echo ""
-
-echo "📥 Migrating semua tabel dari file migration_tables.sql..."
-
-# Import semua tabel
-mysql -h $TARGET_DB_HOST -P $TARGET_DB_PORT -u $TARGET_DB_USER -p$TARGET_DB_PASSWORD \
-    $TARGET_DB_NAME < "$sql_file"
 
 if [ $? -eq 0 ]; then
-    echo "✅ Berhasil migrate semua tabel"
-    success_count=1
-    failed_count=0
+    echo "✅ Migration berhasil dijalankan!"
+    echo ""
+    echo "=== Migration Complete ==="
+    echo "Database: $DB_NAME"
+    echo "MySQL Version: $MYSQL_VERSION"
+    echo "File: $MIGRATION_FILE"
 else
-    echo "❌ Gagal migrate tabel"
-    success_count=0
-    failed_count=1
+    echo "❌ Error: Migration gagal"
+    exit 1
 fi
-
-echo ""
-
-# Tampilkan hasil
-echo "🎉 Migration selesai!"
-echo "✅ Berhasil: $success_count tabel"
-if [ $failed_count -gt 0 ]; then
-    echo "❌ Gagal: $failed_count tabel"
-fi
-echo ""
-
-# Tampilkan tabel yang ada di database target
-echo "📋 Tabel yang tersedia di $TARGET_DB_NAME:"
-mysql -h $TARGET_DB_HOST -P $TARGET_DB_PORT -u $TARGET_DB_USER -p$TARGET_DB_PASSWORD \
-    -e "SHOW TABLES FROM $TARGET_DB_NAME;" 2>/dev/null || echo "  (tidak dapat menampilkan tabel)"
-
-echo ""
-echo "🚀 Database siap digunakan!"
-echo "Jalankan: npm run dev"

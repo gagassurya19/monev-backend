@@ -25,7 +25,7 @@ echo "✅ Node.js $(node -v) terinstal"
 
 # Periksa apakah MySQL terinstal
 if ! command -v mysql &> /dev/null; then
-    echo "❌ Error: MySQL tidak terinstal. Silakan instal MySQL (>=8.0) terlebih dahulu."
+    echo "❌ Error: MySQL tidak terinstal. Silakan instal MySQL (>=5.7) terlebih dahulu."
     echo "   Download dari: https://dev.mysql.com/downloads/mysql/"
     exit 1
 fi
@@ -66,25 +66,6 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "✅ Setup database selesai"
-
-# Check if migration file exists
-if [ -f "scripts/migration_tables.sql" ]; then
-    echo "📦 Migration file ditemukan, memulai migration..."
-    
-    # Make migration script executable
-    chmod +x scripts/migrate_tables.sh
-    
-    # Run migration
-    ./scripts/migrate_tables.sh
-    
-    if [ $? -eq 0 ]; then
-        echo "✅ Migration tabel selesai"
-    else
-        echo "⚠️  Migration tabel gagal, lanjut tanpa tabel"
-    fi
-else
-    echo "ℹ️  Tidak ada migration file, lanjut tanpa tabel"
-fi
 
 # Buat direktori logs
 echo "📁 Membuat direktori logs..."

@@ -29,6 +29,17 @@ const routes = [
     }
   },
   {
+    method: 'POST',
+    path: '/sas/etl/stop_pipeline',
+    handler: celoeApiController.stopSASETL,
+    options: {
+      description: 'Stop SAS ETL pipeline on external CELOE API',
+      notes: 'Proxy endpoint to stop running SAS ETL pipeline on the external CELOE API',
+      tags: ['api', 'celoe', 'etl', 'sas'],
+      auth: 'jwt'
+    }
+  },
+  {
     method: 'GET',
     path: '/sas/etl/logs',
     handler: celoeApiController.getSASETLLogs,
@@ -90,6 +101,17 @@ const routes = [
     options: {
       description: 'Clean CP ETL data on external CELOE API',
       notes: 'Proxy endpoint to clean all CP ETL data on the external CELOE API',
+      tags: ['api', 'celoe', 'etl', 'cp'],
+      auth: 'jwt'
+    }
+  },
+  {
+    method: 'POST',
+    path: '/cp/etl/stop_pipeline',
+    handler: celoeApiController.stopCPETL,
+    options: {
+      description: 'Stop CP ETL pipeline on external CELOE API',
+      notes: 'Proxy endpoint to stop running CP ETL pipeline on the external CELOE API',
       tags: ['api', 'celoe', 'etl', 'cp'],
       auth: 'jwt'
     }
