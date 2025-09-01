@@ -152,7 +152,6 @@ class SpEtlDetailModel {
 
       return {
         data: result.map((detail) => new SpEtlDetailModel(detail)),
-        summary: {},
         pagination: {
           current_page: page,
           total_pages: totalPages,
@@ -237,13 +236,11 @@ class SpEtlDetailModel {
       const query = `
         SELECT 
           COUNT(*) as total_logs,
-          SUM(CASE WHEN module_type = 'assign' THEN 1 ELSE 0 END) as total_module_assign,
-          SUM(CASE WHEN module_type = 'quiz' THEN 1 ELSE 0 END) as total_module_quiz,
-          SUM(CASE WHEN module_type = 'forum' THEN 1 ELSE 0 END) as total_module_forum,
-          SUM(CASE WHEN module_type NOT IN ('assign', 'quiz', 'forum') THEN 1 ELSE 0 END) as total_module_other,
+          SUM(CASE WHEN module_type = 'mod_assign' THEN 1 ELSE 0 END) as total_module_assign,
+          SUM(CASE WHEN module_type = 'mod_quiz' THEN 1 ELSE 0 END) as total_module_quiz,
+          SUM(CASE WHEN module_type = 'mod_forum' THEN 1 ELSE 0 END) as total_module_forum,
+          SUM(CASE WHEN module_type NOT IN ('mod_assign', 'mod_quiz', 'mod_forum') THEN 1 ELSE 0 END) as total_module_other,
           COUNT(DISTINCT module_name) as total_modules,
-          COUNT(DISTINCT course_id) as total_courses,
-          COUNT(DISTINCT user_id) as total_users,
           MAX(grade) as highest_grade,
           MIN(grade) as lowest_grade,
           AVG(grade) as average_grade,
@@ -263,8 +260,6 @@ class SpEtlDetailModel {
           total_module_forum: 0,
           total_module_other: 0,
           total_modules: 0,
-          total_courses: 0,
-          total_users: 0,
           highest_grade: null,
           lowest_grade: null,
           average_grade: null,
