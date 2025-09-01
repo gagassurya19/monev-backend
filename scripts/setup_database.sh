@@ -56,7 +56,7 @@ echo "Setup database..."
 
 # Buat database dan user
 if [ -z "$MYSQL_ROOT_PASSWORD" ]; then
-    mysql -u root << EOF
+    mysql -u root --port=$DB_PORT << EOF
 -- Buat database
 CREATE DATABASE IF NOT EXISTS $DB_NAME
 CHARACTER SET utf8mb4
@@ -77,7 +77,7 @@ FLUSH PRIVILEGES;
 SHOW DATABASES LIKE '${DB_NAME}%';
 EOF
 else
-    mysql -u root -p$MYSQL_ROOT_PASSWORD << EOF
+    mysql -u root --port=$DB_PORT << EOF
 -- Buat database
 CREATE DATABASE IF NOT EXISTS $DB_NAME
 CHARACTER SET utf8mb4

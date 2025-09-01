@@ -8,6 +8,7 @@ const sasEtlRoutes = require("./etl-student-activity-summary");
 const etlCoursePerformanceRoutes = require("./etl-course-performance");
 const celoeApiRoutes = require("./celoe-api");
 const spEtlRoutes = require("./sp-etl-router");
+const tpEtlApiRoutes = require("./tp-etl-api");
 
 // Combine all routes
 const routes = [
@@ -57,6 +58,10 @@ const routes = [
   ...spEtlRoutes.map((route) => ({
     ...route,
     path: `${config.api.prefix}/sp-etl${route.path}`,
+  })),
+  ...tpEtlApiRoutes.map((route) => ({
+    ...route,
+    path: `${config.api.prefix}/tp-etl${route.path}`,
   })),
 ];
 
