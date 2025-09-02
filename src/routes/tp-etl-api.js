@@ -1,3 +1,4 @@
+const Joi = require('joi');
 const tpEtlApiController = require("../controllers/tpEtlApiController");
 
 const routes = [
@@ -11,29 +12,29 @@ const routes = [
 			description: "Get TP ETL Summary data with pagination and search",
 			tags: ["TP ETL"],
 			validate: {
-				query: {
-					page: { type: "number", default: 1 },
-					limit: { type: "number", default: 10 },
-					search: { type: "string", default: "" },
-					sortBy: { type: "string", default: "id" },
-					sortOrder: { type: "string", enum: ["asc", "desc"], default: "desc" },
-				},
+				query: Joi.object({
+					page: Joi.number().default(1),
+					limit: Joi.number().default(10),
+					search: Joi.string().default(''),
+					sortBy: Joi.string().default('id'),
+					sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+				})
 			},
 		},
 	},
 	{
 		method: "GET",
-		path: "/summary/:id",
+		path: "/summary/{id}",
 		handler: tpEtlApiController.getSummaryById,
 		options: {
 			auth: "jwt",
 			description: "Get TP ETL Summary data by ID",
 			tags: ["TP ETL"],
 			validate: {
-				params: {
-					id: { type: "number", required: true },
-				},
-			},
+				params: Joi.object({
+					id: Joi.number().required()
+				})
+			}
 		},
 	},
 
@@ -47,49 +48,49 @@ const routes = [
 			description: "Get TP ETL Detail data with pagination and search",
 			tags: ["TP ETL"],
 			validate: {
-				query: {
-					page: { type: "number", default: 1 },
-					limit: { type: "number", default: 10 },
-					search: { type: "string", default: "" },
-					sortBy: { type: "string", default: "id" },
-					sortOrder: { type: "string", enum: ["asc", "desc"], default: "desc" },
-				},
+				query: Joi.object({
+					page: Joi.number().default(1),
+					limit: Joi.number().default(10),
+					search: Joi.string().default(''),
+					sortBy: Joi.string().default('id'),
+					sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+					})
 			},
 		},
 	},
 	{
 		method: "GET",
-		path: "/detail/:id",
+		path: "/detail/{id}",
 		handler: tpEtlApiController.getDetailById,
 		options: {
 			auth: "jwt",
 			description: "Get TP ETL Detail data by ID",
 			tags: ["TP ETL"],
 			validate: {
-				params: {
-					id: { type: "number", required: true },
-				},
+				params: Joi.object({
+					id: Joi.number().required()
+				})
 			},
 		},
 	},
 	{
 		method: "GET",
-		path: "/detail/user/:userId",
+		path: "/detail/user/{userId}",
 		handler: tpEtlApiController.getDetailByUserId,
 		options: {
 			auth: "jwt",
 			description: "Get TP ETL Detail data by User ID",
 			tags: ["TP ETL"],
 			validate: {
-				params: {
-					userId: { type: "number", required: true },
-				},
-				query: {
-					page: { type: "number", default: 1 },
-					limit: { type: "number", default: 10 },
-					sortBy: { type: "string", default: "id" },
-					sortOrder: { type: "string", enum: ["asc", "desc"], default: "desc" },
-				},
+				params: Joi.object({
+					userId: Joi.number().required()
+				}),
+				query: Joi.object({
+					page: Joi.number().default(1),
+					limit: Joi.number().default(10),
+					sortBy: Joi.string().default('id'),
+					sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+				})
 			},
 		},
 	},
@@ -104,29 +105,29 @@ const routes = [
 			description: "Get TP ETL Logs with pagination and filtering",
 			tags: ["TP ETL"],
 			validate: {
-				query: {
-					page: { type: "number", default: 1 },
-					limit: { type: "number", default: 10 },
-					process_type: { type: "string", default: "" },
-					status: { type: "string", default: "" },
-					sortBy: { type: "string", default: "id" },
-					sortOrder: { type: "string", enum: ["asc", "desc"], default: "desc" },
-				},
+				query: Joi.object({
+					page: Joi.number().default(1),
+					limit: Joi.number().default(10),
+					process_type: Joi.string().default(''),
+					status: Joi.string().default(''),
+					sortBy: Joi.string().default('id'),
+					sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+				})
 			},
 		},
 	},
 	{
 		method: "GET",
-		path: "/logs/:id",
+		path: "/logs/{id}",
 		handler: tpEtlApiController.getLogById,
 		options: {
 			auth: "jwt",
 			description: "Get TP ETL Log by ID",
 			tags: ["TP ETL"],
 			validate: {
-				params: {
-					id: { type: "number", required: true },
-				},
+				params: Joi.object({
+					id: Joi.number().required()
+				})
 			},
 		},
 	},
