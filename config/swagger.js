@@ -1,29 +1,55 @@
 const swaggerOptions = {
   info: {
-    title: 'MONEV API',
-    version: '1.0.0',
-    description: 'API for MONEV - Educational Analytics Platform'
+    title: "MONEV API",
+    version: "1.0.0",
+    description: "API for MONEV - Educational Analytics Platform",
   },
-  documentationPath: '/swagger',
-  jsonPath: '/swagger.json',
+  documentationPath: "/swagger",
+  jsonPath: "/swagger.json",
   securityDefinitions: {
     Bearer: {
-      type: 'apiKey',
-      name: 'Authorization',
-      in: 'header',
-      description: 'JWT Authorization header using the Bearer scheme. Enter your JWT token in the format: Bearer {your-jwt-token}'
+      type: "apiKey",
+      name: "Authorization",
+      in: "header",
+      description:
+        "JWT Authorization header using the Bearer scheme. Enter your JWT token in the format: Bearer {your-jwt-token}",
     },
     token: {
-      type: 'apiKey',
-      name: 'token',
-      in: 'query',
-      description: 'JWT token as query parameter. Example: ?token=your-jwt-token'
-    }
+      type: "apiKey",
+      name: "token",
+      in: "query",
+      description:
+        "JWT token as query parameter. Example: ?token=your-jwt-token",
+    },
   },
-  security: [
-    { Bearer: [] },
-    { token: [] }
-  ]
+  security: [{ Bearer: [] }, { token: [] }],
+  grouping: "tags",
+  tags: [
+    { name: "api", description: "API endpoints" },
+    {
+      name: "tp-etl",
+      description: "TP ETL (Teacher Performance ETL) endpoints",
+    },
+    {
+      name: "sp-etl",
+      description: "SP ETL (Student Performance ETL) endpoints",
+    },
+    { name: "summary", description: "Summary data endpoints" },
+    { name: "detail", description: "Detail data endpoints" },
+    { name: "logs", description: "Log data endpoints" },
+    { name: "auth", description: "Authentication endpoints" },
+    { name: "health", description: "Health check endpoints" },
+  ],
+  schemes: ["http", "https"],
+  host: "localhost:3001",
+  basePath: "/api/v1",
+  consumes: ["application/json"],
+  produces: ["application/json"],
+  swaggerUIPath: "/swagger/",
+  swaggerUI: true,
+  expanded: "none",
+  sortTags: "alpha",
+  sortEndpoints: "alpha",
 };
 
 module.exports = swaggerOptions;

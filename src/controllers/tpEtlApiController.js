@@ -1,357 +1,263 @@
 const TpEtlSummaryModel = require("../models/TpEtlSummaryModel");
 const TpEtlDetailModel = require("../models/TpEtlDetailModel");
 const TpEtlLogModel = require("../models/TpEtlLogModel");
+const database = require("../database/connection");
 const logger = require("../utils/logger");
-const responseService = require("../services/responseService");
+const ResponseService = require("../services/responseService");
 
 const tpEtlApiController = {
-	// Get TP ETL Summary data with pagination and search
-	getSummaryData: async (req, res) => {
-		try {
-			const {
-				page = 1,
-				limit = 10,
-				search = "",
-				sortBy = "id",
-				sortOrder = "desc",
-			} = req.query;
+  // Get TP ETL Summary data with pagination
+  getSummaryData: async (request, h) => {
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        search = "",
+        sort_by = "id",
+        sort_order = "desc",
+      } = request.query;
 
-			logger.info(`Getting TP ETL Summary data with params:`, {
-				page,
-				limit,
-				search,
-				sortBy,
-				sortOrder,
-			});
+      logger.info(`Getting TP ETL Summary data with params:`, {
+        page,
+        limit,
+        search,
+        sort_by,
+        sort_order,
+      });
 
-			const result = await TpEtlSummaryModel.getAll({
-				page: parseInt(page),
-				limit: parseInt(limit),
-				search: search.trim(),
-				sortBy,
-				sortOrder,
-			});
+      const result = await TpEtlSummaryModel.getAll({
+        page: parseInt(page),
+        limit: parseInt(limit),
+        search,
+        sort_by,
+        sort_order,
+      });
 
-			return responseService.success(
-				res,
-				"TP ETL Summary data retrieved successfully",
-				result
-			);
-		} catch (error) {
-			logger.error("Error getting TP ETL Summary data:", error);
-			return responseService.error(
-				res,
-				"Failed to get TP ETL Summary data",
-				error.message
-			);
-		}
-	},
+      return h
+        .response(
+          ResponseService.pagination(
+            result.data,
+            result.pagination,
+            "TP ETL Summary data retrieved successfully"
+          )
+        )
+        .code(200);
+    } catch (error) {
+      logger.error("Error getting TP ETL Summary data:", error);
+      return h
+        .response(
+          ResponseService.internalError("Failed to get TP ETL Summary data")
+        )
+        .code(500);
+    }
+  },
 
-	// Get TP ETL Summary data by ID
-	getSummaryById: async (req, res) => {
-		try {
-			const { id } = req.params;
+  // Get TP ETL Detail data with pagination and filters
+  getDetailData: async (request, h) => {
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        user_id,
+        course_id,
+        search = "",
+        sort_by = "id",
+        sort_order = "desc",
+      } = request.query;
 
-			if (!id) {
-				return responseService.badRequest(res, "ID is required");
-			}
+      logger.info(`Getting TP ETL Detail data with params:`, {
+        page,
+        limit,
+        user_id,
+        course_id,
+        search,
+        sort_by,
+        sort_order,
+      });
 
-			logger.info(`Getting TP ETL Summary data by ID: ${id}`);
+      const result = await TpEtlDetailModel.getAll({
+        page: parseInt(page),
+        limit: parseInt(limit),
+        user_id: user_id ? parseInt(user_id) : undefined,
+        course_id: course_id ? parseInt(course_id) : undefined,
+        search,
+        sort_by,
+        sort_order,
+      });
 
-			const result = await TpEtlSummaryModel.getById(id);
+      return h
+        .response(
+          ResponseService.pagination(
+            result.data,
+            result.pagination,
+            "TP ETL Detail data retrieved successfully"
+          )
+        )
+        .code(200);
+    } catch (error) {
+      logger.error("Error getting TP ETL Detail data:", error);
+      return h
+        .response(
+          ResponseService.internalError("Failed to get TP ETL Detail data")
+        )
+        .code(500);
+    }
+  },
 
-			if (!result.success) {
-				return responseService.notFound(res, result.message);
-			}
+  // Get TP ETL Latest Log
+  getLatestLog: async (request, h) => {
+    try {
+      logger.info("Getting TP ETL Latest Log");
 
-			return responseService.success(
-				res,
-				"TP ETL Summary data retrieved successfully",
-				result.data
-			);
-		} catch (error) {
-			logger.error("Error getting TP ETL Summary data by ID:", error);
-			return responseService.error(
-				res,
-				"Failed to get TP ETL Summary data",
-				error.message
-			);
-		}
-	},
-
-	// Get TP ETL Detail data with pagination and search
-	getDetailData: async (req, res) => {
-		try {
-			const {
-				page = 1,
-				limit = 10,
-				search = "",
-				sortBy = "id",
-				sortOrder = "desc",
-			} = req.query;
-
-			logger.info(`Getting TP ETL Detail data with params:`, {
-				page,
-				limit,
-				search,
-				sortBy,
-				sortOrder,
-			});
-
-			const result = await TpEtlDetailModel.getAll({
-				page: parseInt(page),
-				limit: parseInt(limit),
-				search: search.trim(),
-				sortBy,
-				sortOrder,
-			});
-
-			return responseService.success(
-				res,
-				"TP ETL Detail data retrieved successfully",
-				result
-			);
-		} catch (error) {
-			logger.error("Error getting TP ETL Detail data:", error);
-			return responseService.error(
-				res,
-				"Failed to get TP ETL Detail data",
-				error.message
-			);
-		}
-	},
-
-	// Get TP ETL Detail data by ID
-	getDetailById: async (req, res) => {
-		try {
-			const { id } = req.params;
-
-			if (!id) {
-				return responseService.badRequest(res, "ID is required");
-			}
-
-			logger.info(`Getting TP ETL Detail data by ID: ${id}`);
-
-			const result = await TpEtlDetailModel.getById(id);
-
-			if (!result.success) {
-				return responseService.notFound(res, result.message);
-			}
-
-			return responseService.success(
-				res,
-				"TP ETL Detail data retrieved successfully",
-				result.data
-			);
-		} catch (error) {
-			logger.error("Error getting TP ETL Detail data by ID:", error);
-			return responseService.error(
-				res,
-				"Failed to get TP ETL Detail data",
-				error.message
-			);
-		}
-	},
-
-	// Get TP ETL Detail data by User ID
-	getDetailByUserId: async (req, res) => {
-		try {
-			const { userId } = req.params;
-			const {
-				page = 1,
-				limit = 10,
-				sortBy = "id",
-				sortOrder = "desc",
-			} = req.query;
-
-			if (!userId) {
-				return responseService.badRequest(res, "User ID is required");
-			}
-
-			logger.info(`Getting TP ETL Detail data by User ID: ${userId}`);
-
-			const result = await TpEtlDetailModel.getByUserId(userId, {
-				page: parseInt(page),
-				limit: parseInt(limit),
-				sortBy,
-				sortOrder,
-			});
-
-			return responseService.success(
-				res,
-				"TP ETL Detail data by user retrieved successfully",
-				result
-			);
-		} catch (error) {
-			logger.error("Error getting TP ETL Detail data by User ID:", error);
-			return responseService.error(
-				res,
-				"Failed to get TP ETL Detail data by user",
-				error.message
-			);
-		}
-	},
-
-	// Get TP ETL Logs with pagination
-	getLogs: async (req, res) => {
-		try {
-			const {
-				page = 1,
-				limit = 10,
-				process_type = "",
-				status = "",
-				sortBy = "id",
-				sortOrder = "desc",
-			} = req.query;
-
-			logger.info(`Getting TP ETL Logs with params:`, {
-				page,
-				limit,
-				process_type,
-				status,
-				sortBy,
-				sortOrder,
-			});
-
-			// Build WHERE clause for filtering
-			let whereClause = "";
-			let whereValues = [];
-
-			if (process_type && process_type.trim() !== "") {
-				whereClause += whereClause ? " AND " : "WHERE ";
-				whereClause += "process_type = ?";
-				whereValues.push(process_type.trim());
-			}
-
-			if (status && status.trim() !== "") {
-				whereClause += whereClause ? " AND " : "WHERE ";
-				whereClause += "status = ?";
-				whereValues.push(status.trim());
-			}
-
-			// Calculate offset
-			const offset = (parseInt(page) - 1) * parseInt(limit);
-
-			// Build ORDER BY clause
-			const allowedSortFields = [
-				"id",
-				"process_type",
-				"status",
-				"message",
-				"concurrency",
-				"start_date",
-				"end_date",
-				"duration_seconds",
-				"total_records",
-				"created_at",
-				"updated_at",
-			];
-
-			const sortField = allowedSortFields.includes(sortBy) ? sortBy : "id";
-			const orderDirection = sortOrder.toLowerCase() === "asc" ? "ASC" : "DESC";
-
-			// Count total records for pagination
-			const countQuery = `
-				SELECT COUNT(*) as total 
-				FROM monev_tp_etl_logs 
-				${whereClause}
-			`;
-
-			const countResult = await TpEtlLogModel.database.query(
-				countQuery,
-				whereValues
-			);
-			const totalRecords = countResult[0].total;
-
-			// Get paginated data
-			const dataQuery = `
+      const query = `
 				SELECT * FROM monev_tp_etl_logs 
-				${whereClause}
-				ORDER BY ${sortField} ${orderDirection}
-				LIMIT ? OFFSET ?
+				ORDER BY id DESC 
+				LIMIT 1
 			`;
 
-			const dataValues = [...whereValues, parseInt(limit), offset];
-			const dataResult = await TpEtlLogModel.database.query(
-				dataQuery,
-				dataValues
-			);
+      const result = await database.query(query);
 
-			// Calculate pagination info
-			const totalPages = Math.ceil(totalRecords / parseInt(limit));
-			const hasNextPage = parseInt(page) < totalPages;
-			const hasPrevPage = parseInt(page) > 1;
+      if (result && result.length > 0) {
+        return h
+          .response(
+            ResponseService.success(
+              result[0],
+              "TP ETL Latest Log retrieved successfully"
+            )
+          )
+          .code(200);
+      } else {
+        return h.response(ResponseService.notFound("No logs found")).code(404);
+      }
+    } catch (error) {
+      logger.error("Error getting TP ETL Latest Log:", error);
+      return h
+        .response(
+          ResponseService.internalError("Failed to get TP ETL Latest Log")
+        )
+        .code(500);
+    }
+  },
 
-			const result = {
-				success: true,
-				data: dataResult,
-				pagination: {
-					current_page: parseInt(page),
-					per_page: parseInt(limit),
-					total_records: totalRecords,
-					total_pages: totalPages,
-					has_next_page: hasNextPage,
-					has_prev_page: hasPrevPage,
-					next_page: hasNextPage ? parseInt(page) + 1 : null,
-					prev_page: hasPrevPage ? parseInt(page) - 1 : null,
-				},
-				filters: {
-					process_type: process_type.trim() || null,
-					status: status.trim() || null,
-				},
-			};
+  // Get User Courses
+  getUserCourses: async (request, h) => {
+    try {
+      const { user_id, course_id } = request.query;
 
-			return responseService.success(
-				res,
-				"TP ETL Logs retrieved successfully",
-				result
-			);
-		} catch (error) {
-			logger.error("Error getting TP ETL Logs:", error);
-			return responseService.error(
-				res,
-				"Failed to get TP ETL Logs",
-				error.message
-			);
-		}
-	},
+      logger.info("Getting TP ETL User Courses with params:", {
+        user_id,
+        course_id,
+      });
 
-	// Get TP ETL Log by ID
-	getLogById: async (req, res) => {
-		try {
-			const { id } = req.params;
+      const result = await TpEtlDetailModel.getUserCourses({
+        user_id: user_id ? parseInt(user_id) : undefined,
+        course_id: course_id ? parseInt(course_id) : undefined,
+      });
 
-			if (!id) {
-				return responseService.badRequest(res, "ID is required");
-			}
+      return h
+        .response(
+          ResponseService.success(
+            result,
+            "TP ETL User Courses retrieved successfully"
+          )
+        )
+        .code(200);
+    } catch (error) {
+      logger.error("Error getting TP ETL User Courses:", error);
+      return h
+        .response(
+          ResponseService.internalError("Failed to get TP ETL User Courses")
+        )
+        .code(500);
+    }
+  },
 
-			logger.info(`Getting TP ETL Log by ID: ${id}`);
+  // Get TP ETL Summary by User ID
+  getSummaryByUserId: async (request, h) => {
+    try {
+      const { userId } = request.params;
 
-			const query = `
-				SELECT * FROM monev_tp_etl_logs 
-				WHERE id = ?
-			`;
+      logger.info("Getting TP ETL Summary by User ID:", { userId });
 
-			const result = await TpEtlLogModel.database.query(query, [parseInt(id)]);
+      const result = await TpEtlSummaryModel.getByUserId(userId);
 
-			if (result && result.length > 0) {
-				return responseService.success(
-					res,
-					"TP ETL Log retrieved successfully",
-					result[0]
-				);
-			} else {
-				return responseService.notFound(res, "Log not found");
-			}
-		} catch (error) {
-			logger.error("Error getting TP ETL Log by ID:", error);
-			return responseService.error(
-				res,
-				"Failed to get TP ETL Log",
-				error.message
-			);
-		}
-	},
+      if (result) {
+        return h
+          .response(
+            ResponseService.success(
+              result,
+              "TP ETL Summary by User ID retrieved successfully"
+            )
+          )
+          .code(200);
+      } else {
+        return h
+          .response(
+            ResponseService.notFound(
+              "TP ETL Summary not found for this user ID"
+            )
+          )
+          .code(404);
+      }
+    } catch (error) {
+      logger.error("Error getting TP ETL Summary by User ID:", error);
+      return h
+        .response(
+          ResponseService.internalError(
+            "Failed to get TP ETL Summary by User ID"
+          )
+        )
+        .code(500);
+    }
+  },
+
+  // Get TP ETL Detail by User ID and Course ID
+  getDetailByUserIdCourseId: async (request, h) => {
+    try {
+      const { userId, courseId } = request.params;
+
+      logger.info("Getting TP ETL Detail by User ID and Course ID:", {
+        userId,
+        courseId,
+      });
+
+      const result = await TpEtlDetailModel.getByUserIdCourseId(
+        userId,
+        courseId
+      );
+
+      if (result) {
+        return h
+          .response(
+            ResponseService.success(
+              result,
+              "TP ETL Detail by User ID and Course ID retrieved successfully"
+            )
+          )
+          .code(200);
+      } else {
+        return h
+          .response(
+            ResponseService.notFound(
+              "TP ETL Detail not found for this user ID and course ID"
+            )
+          )
+          .code(404);
+      }
+    } catch (error) {
+      logger.error(
+        "Error getting TP ETL Detail by User ID and Course ID:",
+        error
+      );
+      return h
+        .response(
+          ResponseService.internalError(
+            "Failed to get TP ETL Detail by User ID and Course ID"
+          )
+        )
+        .code(500);
+    }
+  },
 };
 
 module.exports = tpEtlApiController;

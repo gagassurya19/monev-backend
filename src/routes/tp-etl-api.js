@@ -1,135 +1,165 @@
+const Joi = require("joi");
 const tpEtlApiController = require("../controllers/tpEtlApiController");
 
 const routes = [
-	// TP ETL Summary routes
-	{
-		method: "GET",
-		path: "/summary",
-		handler: tpEtlApiController.getSummaryData,
-		options: {
-			auth: "jwt",
-			description: "Get TP ETL Summary data with pagination and search",
-			tags: ["TP ETL"],
-			validate: {
-				query: {
-					page: { type: "number", default: 1 },
-					limit: { type: "number", default: 10 },
-					search: { type: "string", default: "" },
-					sortBy: { type: "string", default: "id" },
-					sortOrder: { type: "string", enum: ["asc", "desc"], default: "desc" },
-				},
-			},
-		},
-	},
-	{
-		method: "GET",
-		path: "/summary/:id",
-		handler: tpEtlApiController.getSummaryById,
-		options: {
-			auth: "jwt",
-			description: "Get TP ETL Summary data by ID",
-			tags: ["TP ETL"],
-			validate: {
-				params: {
-					id: { type: "number", required: true },
-				},
-			},
-		},
-	},
+  // TP ETL Summary routes
+  {
+    method: "GET",
+    path: "/summary",
+    handler: tpEtlApiController.getSummaryData,
+    options: {
+      auth: "jwt",
+      description: "Get TP ETL Summary data with pagination",
+      notes:
+        "Retrieve paginated TP ETL summary data with optional search (username, firstname, lastname, email)",
+      tags: ["api", "tp-etl", "summary"],
+      validate: {
+        query: Joi.object({
+          page: Joi.number().integer().min(1).default(1),
+          limit: Joi.number().integer().min(1).max(100).default(10),
+          search: Joi.string().optional(),
+          sort_by: Joi.string().default("id"),
+          sort_order: Joi.string().valid("asc", "desc").default("desc"),
+        }),
+      },
+      response: {
+        schema: Joi.object({
+          success: Joi.boolean(),
+          status: Joi.number(),
+          message: Joi.string(),
+          timestamp: Joi.string(),
+          data: Joi.array().items(Joi.object()),
+          pagination: Joi.object({
+            current_page: Joi.number(),
+            limit: Joi.number(),
+            total_records: Joi.number(),
+            total_pages: Joi.number(),
+            has_next_page: Joi.boolean(),
+            has_prev_page: Joi.boolean(),
+            next_page: Joi.number().allow(null),
+            prev_page: Joi.number().allow(null),
+          }),
+        }),
+      },
+    },
+  },
 
-	// TP ETL Detail routes
-	{
-		method: "GET",
-		path: "/detail",
-		handler: tpEtlApiController.getDetailData,
-		options: {
-			auth: "jwt",
-			description: "Get TP ETL Detail data with pagination and search",
-			tags: ["TP ETL"],
-			validate: {
-				query: {
-					page: { type: "number", default: 1 },
-					limit: { type: "number", default: 10 },
-					search: { type: "string", default: "" },
-					sortBy: { type: "string", default: "id" },
-					sortOrder: { type: "string", enum: ["asc", "desc"], default: "desc" },
-				},
-			},
-		},
-	},
-	{
-		method: "GET",
-		path: "/detail/:id",
-		handler: tpEtlApiController.getDetailById,
-		options: {
-			auth: "jwt",
-			description: "Get TP ETL Detail data by ID",
-			tags: ["TP ETL"],
-			validate: {
-				params: {
-					id: { type: "number", required: true },
-				},
-			},
-		},
-	},
-	{
-		method: "GET",
-		path: "/detail/user/:userId",
-		handler: tpEtlApiController.getDetailByUserId,
-		options: {
-			auth: "jwt",
-			description: "Get TP ETL Detail data by User ID",
-			tags: ["TP ETL"],
-			validate: {
-				params: {
-					userId: { type: "number", required: true },
-				},
-				query: {
-					page: { type: "number", default: 1 },
-					limit: { type: "number", default: 10 },
-					sortBy: { type: "string", default: "id" },
-					sortOrder: { type: "string", enum: ["asc", "desc"], default: "desc" },
-				},
-			},
-		},
-	},
+  // TP ETL Detail routes
+  {
+    method: "GET",
+    path: "/detail",
+    handler: tpEtlApiController.getDetailData,
+    options: {
+      auth: "jwt",
+      description: "Get TP ETL Detail data with pagination and filters",
+      notes:
+        "Retrieve paginated TP ETL detail data with optional user_id, course_id filters, and search (component, action, target)",
+      tags: ["api", "tp-etl", "detail"],
+      validate: {
+        query: Joi.object({
+          page: Joi.number().integer().min(1).default(1),
+          limit: Joi.number().integer().min(1).max(100).default(10),
+          user_id: Joi.number().integer().optional(),
+          course_id: Joi.number().integer().optional(),
+          search: Joi.string().optional(),
+          sort_by: Joi.string().default("id"),
+          sort_order: Joi.string().valid("asc", "desc").default("desc"),
+        }),
+      },
+      response: {
+        schema: Joi.object({
+          success: Joi.boolean(),
+          status: Joi.number(),
+          message: Joi.string(),
+          timestamp: Joi.string(),
+          data: Joi.array().items(Joi.object()),
+          pagination: Joi.object({
+            current_page: Joi.number(),
+            limit: Joi.number(),
+            total_records: Joi.number(),
+            total_pages: Joi.number(),
+            has_next_page: Joi.boolean(),
+            has_prev_page: Joi.boolean(),
+            next_page: Joi.number().allow(null),
+            prev_page: Joi.number().allow(null),
+          }),
+        }),
+      },
+    },
+  },
 
-	// TP ETL Logs routes
-	{
-		method: "GET",
-		path: "/logs",
-		handler: tpEtlApiController.getLogs,
-		options: {
-			auth: "jwt",
-			description: "Get TP ETL Logs with pagination and filtering",
-			tags: ["TP ETL"],
-			validate: {
-				query: {
-					page: { type: "number", default: 1 },
-					limit: { type: "number", default: 10 },
-					process_type: { type: "string", default: "" },
-					status: { type: "string", default: "" },
-					sortBy: { type: "string", default: "id" },
-					sortOrder: { type: "string", enum: ["asc", "desc"], default: "desc" },
-				},
-			},
-		},
-	},
-	{
-		method: "GET",
-		path: "/logs/:id",
-		handler: tpEtlApiController.getLogById,
-		options: {
-			auth: "jwt",
-			description: "Get TP ETL Log by ID",
-			tags: ["TP ETL"],
-			validate: {
-				params: {
-					id: { type: "number", required: true },
-				},
-			},
-		},
-	},
+  // TP ETL Detail by User ID and Course ID route
+  {
+    method: "GET",
+    path: "/detail/user/{userId}/course/{courseId}",
+    handler: tpEtlApiController.getDetailByUserIdCourseId,
+    options: {
+      auth: "jwt",
+      description: "Get TP ETL Detail by User ID and Course ID",
+      notes:
+        "Retrieve aggregated TP ETL detail data for a specific user and course with activity counts",
+      tags: ["api", "tp-etl", "detail"],
+      validate: {
+        params: Joi.object({
+          userId: Joi.number().integer().min(1).required(),
+          courseId: Joi.number().integer().min(1).required(),
+        }),
+      },
+      response: {
+        schema: Joi.object({
+          success: Joi.boolean(),
+          status: Joi.number(),
+          message: Joi.string(),
+          timestamp: Joi.string(),
+          data: Joi.object({
+            user_id: Joi.number(),
+            username: Joi.string(),
+            firstname: Joi.string(),
+            lastname: Joi.string(),
+            email: Joi.string(),
+            course_id: Joi.number(),
+            course_name: Joi.string(),
+            course_shortname: Joi.string(),
+            total_activities: Joi.number(),
+            quiz_logs: Joi.number(),
+            forum_logs: Joi.number(),
+            assign_logs: Joi.number(),
+            last_activity_date: Joi.string().allow(null),
+            first_activity_date: Joi.string().allow(null),
+          }),
+        }),
+      },
+    },
+  },
+
+  // TP ETL User Courses route
+  {
+    method: "GET",
+    path: "/user-courses",
+    handler: tpEtlApiController.getUserCourses,
+    options: {
+      auth: "jwt",
+      description: "Get TP ETL User Courses",
+      notes:
+        "Retrieve user courses data grouped by user_id and course_id with activity statistics. Optional filters: user_id, course_id",
+      tags: ["api", "tp-etl", "detail"],
+      validate: {
+        query: Joi.object({
+          user_id: Joi.number().integer().optional(),
+          course_id: Joi.number().integer().optional(),
+        }),
+      },
+      response: {
+        schema: Joi.object({
+          success: Joi.boolean(),
+          status: Joi.number(),
+          message: Joi.string(),
+          timestamp: Joi.string(),
+          data: Joi.array().items(Joi.object()),
+        }),
+      },
+    },
+  },
 ];
 
 module.exports = routes;
