@@ -12,7 +12,7 @@ const routes = [
       description: "Get TP ETL Summary data with pagination",
       notes:
         "Retrieve paginated TP ETL summary data with optional search (username, firstname, lastname, email)",
-      tags: ["api", "tp-etl", "summary"],
+      tags: ["tp-etl", "api"],
       validate: {
         query: Joi.object({
           page: Joi.number().integer().min(1).default(1),
@@ -54,7 +54,7 @@ const routes = [
       description: "Get TP ETL Detail data with pagination and filters",
       notes:
         "Retrieve paginated TP ETL detail data with optional user_id, course_id filters, and search (component, action, target)",
-      tags: ["api", "tp-etl", "detail"],
+      tags: ["tp-etl", "api"],
       validate: {
         query: Joi.object({
           page: Joi.number().integer().min(1).default(1),
@@ -98,7 +98,7 @@ const routes = [
       description: "Get TP ETL Detail by User ID and Course ID",
       notes:
         "Retrieve aggregated TP ETL detail data for a specific user and course with activity counts",
-      tags: ["api", "tp-etl", "detail"],
+      tags: ["tp-etl", "api"],
       validate: {
         params: Joi.object({
           userId: Joi.number().integer().min(1).required(),
@@ -142,7 +142,7 @@ const routes = [
       description: "Get TP ETL User Courses",
       notes:
         "Retrieve user courses data grouped by user_id and course_id with activity statistics. Optional filters: user_id, course_id",
-      tags: ["api", "tp-etl", "detail"],
+      tags: ["tp-etl", "api"],
       validate: {
         query: Joi.object({
           user_id: Joi.number().integer().optional(),

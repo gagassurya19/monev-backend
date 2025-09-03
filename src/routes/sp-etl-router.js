@@ -8,7 +8,7 @@ const routes = [
     handler: spEtlApiController.getSummaryDataWithPagination,
     options: {
       description: "Get SP ETL summaries",
-      tags: ["api", "sp-etl", "summaries"],
+      tags: ["sp-etl", "api"],
       validate: {
         query: Joi.object({
           page: Joi.number().default(1),
@@ -27,7 +27,7 @@ const routes = [
     handler: spEtlApiController.getUserAllCourse,
     options: {
       description: "Get SP ETL user all course",
-      tags: ["api", "sp-etl", "user-all-course"],
+      tags: ["sp-etl", "api"],
       validate: {
         query: Joi.object({
           user_id: Joi.number().default(0),
@@ -43,7 +43,7 @@ const routes = [
     handler: spEtlApiController.getDetailDataWithPagination,
     options: {
       description: "Get SP ETL detail data with pagination",
-      tags: ["api", "sp-etl", "detail"],
+      tags: ["sp-etl", "api"],
       validate: {
         query: Joi.object({
           user_id: Joi.number().default(0),
@@ -64,7 +64,7 @@ const routes = [
     handler: spEtlApiController.getModuleTypeSummary,
     options: {
       description: "Get SP ETL module type summary",
-      tags: ["api", "sp-etl", "module-type-summary"],
+      tags: ["sp-etl", "api"],
       validate: {
         query: Joi.object({
           user_id: Joi.number().default(0),
