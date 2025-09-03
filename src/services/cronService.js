@@ -1,23 +1,23 @@
 const cron = require("node-cron");
 const etlCoursePerformanceService = require("./etlCoursePerformanceService");
 const SASFetchCategorySubjectService = require("./sas-fetch-category-subject");
-const sasUserLoginActivityService = require("./sasUserLoginActivityService");
 const spETLService = require("./spEtlService");
 const teacherPerformanceEtlService = require("./TeacherPerformanceEtlService");
+const userDetectLoginService = require("./userDetectLoginService");
 const logger = require("../utils/logger");
 
 class CronService {
   constructor() {
     this.etlCoursePerformanceTask = null;
     this.sasCategorySubjectTask = null;
-    this.sasUsersLoginTask = null;
     this.isETLCoursePerformanceRunning = false;
     this.isSASCategorySubjectRunning = false;
-    this.isSASUsersLoginRunning = false;
     this.spETLTask = null;
     this.isSPETLRunning = false;
     this.tpETLTask = null;
     this.isTPETLRunning = false;
+    this.udlETLTask = null;
+    this.isUDLETLRunning = false;
     // Load configuration from environment variables
     this.config = {
       timezone: process.env.CRON_TIMEZONE || "Asia/Jakarta",
@@ -48,18 +48,6 @@ class CronService {
           parseInt(process.env.SAS_CATEGORY_SUBJECT_MAX_WAIT_TIME) || 1800000,
       },
 
-      // SAS Users Login ETL
-      sasUsersLoginETL: {
-        enabled: process.env.SAS_USERS_LOGIN_ETL_ENABLED === "true",
-        schedule: process.env.SAS_USERS_LOGIN_ETL_SCHEDULE || "0 * * * *",
-        description:
-          process.env.SAS_USERS_LOGIN_ETL_DESCRIPTION ||
-          "Every hour at minute 0",
-        timeout: parseInt(process.env.SAS_USERS_LOGIN_ETL_TIMEOUT) || 1800000,
-        maxWaitTime:
-          parseInt(process.env.SAS_USERS_LOGIN_ETL_MAX_WAIT_TIME) || 1800000,
-      },
-
       // SP ETL
       spETL: {
         enabled: process.env.SP_ETL_ENABLED === "true",
@@ -76,6 +64,15 @@ class CronService {
         description: process.env.TP_ETL_DESCRIPTION || "Every hour at minute 0",
         timeout: parseInt(process.env.TP_ETL_TIMEOUT) || 1800000,
         maxWaitTime: parseInt(process.env.TP_ETL_MAX_WAIT_TIME) || 1800000,
+      },
+
+      // UDL ETL
+      udlETL: {
+        enabled: process.env.UDL_ETL_ENABLED === "true",
+        schedule: process.env.UDL_ETL_SCHEDULE || "* * * * *",
+        description: process.env.UDL_ETL_DESCRIPTION || "Every minute",
+        timeout: parseInt(process.env.UDL_ETL_TIMEOUT) || 1800000,
+        maxWaitTime: parseInt(process.env.UDL_ETL_MAX_WAIT_TIME) || 1800000,
       },
     };
   }
@@ -131,27 +128,6 @@ class CronService {
       );
     }
 
-    // Schedule SAS Users Login ETL if enabled
-    if (this.config.sasUsersLoginETL.enabled) {
-      this.sasUsersLoginTask = cron.schedule(
-        this.config.sasUsersLoginETL.schedule,
-        async () => {
-          await this.runSASUsersLoginETL();
-        },
-        {
-          scheduled: true,
-          timezone: this.config.timezone,
-        }
-      );
-      logger.info(
-        `SAS Users Login ETL cron job scheduled: ${this.config.sasUsersLoginETL.description}`
-      );
-    } else {
-      logger.info(
-        "SAS Users Login ETL cron job disabled via SAS_USERS_LOGIN_ETL_ENABLED=false"
-      );
-    }
-
     // Schedule SP ETL if enabled
     if (this.config.spETL.enabled) {
       this.spETLTask = cron.schedule(
@@ -188,6 +164,25 @@ class CronService {
       );
     } else {
       logger.info("TP ETL cron job disabled via TP_ETL_ENABLED=false");
+    }
+
+    // Schedule UDL ETL if enabled
+    if (this.config.udlETL.enabled) {
+      this.udlETLTask = cron.schedule(
+        this.config.udlETL.schedule,
+        async () => {
+          await this.runUDLETL();
+        },
+        {
+          scheduled: true,
+          timezone: this.config.timezone,
+        }
+      );
+      logger.info(
+        `UDL ETL cron job scheduled: ${this.config.udlETL.description}`
+      );
+    } else {
+      logger.info("UDL ETL cron job disabled via UDL_ETL_ENABLED=false");
     }
 
     logger.info("Multiple ETL cron jobs initialization completed");
@@ -341,71 +336,6 @@ class CronService {
     }
   }
 
-  // Run SAS Users Login ETL with proper waiting logic
-  async runSASUsersLoginETL() {
-    // Check if SAS Users Login ETL should run based on time (only at minute 00)
-
-    let waitTime = 0;
-    const maxWaitTime = this.config.sasCategorySubject.maxWaitTime;
-
-    if (this.isSASUsersLoginRunning) {
-      logger.warn(
-        "SAS Users Login ETL process is already running, waiting for it to finish..."
-      );
-
-      while (this.isSASUsersLoginRunning && waitTime < maxWaitTime) {
-        await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait 10 seconds
-        waitTime += 10000;
-        logger.info(
-          `Waiting for SAS Users Login ETL process to finish... (${Math.round(
-            waitTime / 1000
-          )}s)`
-        );
-      }
-
-      if (this.isSASUsersLoginRunning) {
-        logger.error(
-          `SAS Users Login ETL process is still running after ${Math.round(
-            maxWaitTime / 1000
-          )}s, skipping this scheduled run`
-        );
-        return;
-      }
-
-      logger.info(
-        "Previous SAS Users Login ETL process finished, proceeding with new run"
-      );
-    }
-
-    try {
-      this.isSASUsersLoginRunning = true;
-      logger.info("Starting scheduled SAS Users Login ETL process");
-
-      // Set timeout for the SAS process
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(
-          () => reject(new Error("SAS Users Login ETL process timeout")),
-          this.config.sasUsersLoginETL.timeout
-        );
-      });
-
-      const sasUsersLoginPromise = sasUserLoginActivityService.runCron();
-
-      await Promise.race([sasUsersLoginPromise, timeoutPromise]);
-
-      logger.info(
-        "Scheduled SAS Users Login ETL process completed successfully"
-      );
-    } catch (error) {
-      logger.error("Scheduled SAS Users Login ETL process failed:", {
-        message: error.message,
-        stack: error.stack,
-      });
-    } finally {
-      this.isSASUsersLoginRunning = false;
-    }
-  }
-
   // Run SP ETL with proper waiting logic
   async runSPETL() {
     // SP ETL can run every minute
@@ -524,6 +454,65 @@ class CronService {
     }
   }
 
+  // Run UDL ETL with proper waiting logic
+  async runUDLETL() {
+    // UDL ETL can run every minute
+    let waitTime = 0;
+    const maxWaitTime = this.config.udlETL.maxWaitTime;
+
+    if (this.isUDLETLRunning) {
+      logger.warn(
+        "UDL ETL process is already running, waiting for it to finish..."
+      );
+      while (this.isUDLETLRunning && waitTime < maxWaitTime) {
+        await new Promise((resolve) => setTimeout(resolve, 10000));
+        waitTime += 10000;
+        logger.info(
+          `Waiting for UDL ETL process to finish... (${Math.round(
+            waitTime / 1000
+          )}s)`
+        );
+      }
+
+      if (this.isUDLETLRunning) {
+        logger.error(
+          `UDL ETL process is still running after ${Math.round(
+            maxWaitTime / 1000
+          )}s, skipping this scheduled run`
+        );
+        return;
+      }
+
+      logger.info("Previous UDL ETL process finished, proceeding with new run");
+    }
+
+    try {
+      this.isUDLETLRunning = true;
+      logger.info("Starting scheduled UDL ETL process");
+
+      // Set timeout for the UDL process
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(
+          () => reject(new Error("UDL ETL process timeout")),
+          this.config.udlETL.timeout
+        );
+      });
+
+      const udlETLPromise = userDetectLoginService.runCron();
+
+      await Promise.race([udlETLPromise, timeoutPromise]);
+
+      logger.info("Scheduled UDL ETL process completed successfully");
+    } catch (error) {
+      logger.error("Scheduled UDL ETL process failed:", {
+        message: error.message,
+        stack: error.stack,
+      });
+    } finally {
+      this.isUDLETLRunning = false;
+    }
+  }
+
   // Start the cron jobs
   start() {
     if (
@@ -539,11 +528,6 @@ class CronService {
       logger.info("SAS Category Subject cron job started");
     }
 
-    if (this.config.sasUsersLoginETL.enabled && this.sasUsersLoginTask) {
-      this.sasUsersLoginTask.start();
-      logger.info("SAS Users Login ETL cron job started");
-    }
-
     if (this.config.spETL.enabled && this.spETLTask) {
       this.spETLTask.start();
       logger.info("SP ETL cron job started");
@@ -552,6 +536,11 @@ class CronService {
     if (this.config.tpETL.enabled && this.tpETLTask) {
       this.tpETLTask.start();
       logger.info("TP ETL cron job started");
+    }
+
+    if (this.config.udlETL.enabled && this.udlETLTask) {
+      this.udlETLTask.start();
+      logger.info("UDL ETL cron job started");
     }
 
     logger.info("All enabled cron jobs started");
@@ -569,11 +558,6 @@ class CronService {
       logger.info("SAS Category Subject cron job stopped");
     }
 
-    if (this.sasUsersLoginTask) {
-      this.sasUsersLoginTask.stop();
-      logger.info("SAS Users Login ETL cron job stopped");
-    }
-
     if (this.spETLTask) {
       this.spETLTask.stop();
       logger.info("SP ETL cron job stopped");
@@ -582,6 +566,11 @@ class CronService {
     if (this.tpETLTask) {
       this.tpETLTask.stop();
       logger.info("TP ETL cron job stopped");
+    }
+
+    if (this.udlETLTask) {
+      this.udlETLTask.stop();
+      logger.info("UDL ETL cron job stopped");
     }
 
     logger.info("All cron jobs stopped");
@@ -601,12 +590,6 @@ class CronService {
       logger.info("SAS Category Subject cron job destroyed");
     }
 
-    if (this.sasUsersLoginTask) {
-      this.sasUsersLoginTask.destroy();
-      this.sasUsersLoginTask = null;
-      logger.info("SAS Users Login ETL cron job destroyed");
-    }
-
     if (this.spETLTask) {
       this.spETLTask.destroy();
       this.spETLTask = null;
@@ -617,6 +600,12 @@ class CronService {
       this.tpETLTask.destroy();
       this.tpETLTask = null;
       logger.info("TP ETL cron job destroyed");
+    }
+
+    if (this.udlETLTask) {
+      this.udlETLTask.destroy();
+      this.udlETLTask = null;
+      logger.info("UDL ETL cron job destroyed");
     }
 
     logger.info("All cron jobs destroyed");
@@ -636,9 +625,9 @@ class CronService {
         timezone: this.config.timezone,
         etlCoursePerformance: this.config.etlCoursePerformance,
         sasCategorySubject: this.config.sasCategorySubject,
-        sasUsersLoginETL: this.config.sasUsersLoginETL,
         spETL: this.config.spETL,
         tpETL: this.config.tpETL,
+        udlETL: this.config.udlETL,
       },
 
       // ETL Course Performance Status
@@ -656,13 +645,6 @@ class CronService {
         : "not scheduled",
       isSASCategorySubjectCurrentlyRunning: this.isSASCategorySubjectRunning,
 
-      // SAS Users Login ETL Status
-      sasUsersLoginETLScheduled: !!this.sasUsersLoginTask,
-      sasUsersLoginETLRunning: this.sasUsersLoginTask
-        ? this.sasUsersLoginTask.getStatus()
-        : "not scheduled",
-      isSASUsersLoginCurrentlyRunning: this.isSASUsersLoginRunning,
-
       // SP ETL Status
       spETLScheduled: !!this.spETLTask,
       spETLRunning: this.spETLTask
@@ -676,6 +658,13 @@ class CronService {
         ? this.tpETLTask.getStatus()
         : "not scheduled",
       isTPETLCurrentlyRunning: this.isTPETLRunning,
+
+      // UDL ETL Status
+      udlETLScheduled: !!this.udlETLTask,
+      udlETLRunning: this.udlETLTask
+        ? this.udlETLTask.getStatus()
+        : "not scheduled",
+      isUDLETLCurrentlyRunning: this.isUDLETLRunning,
 
       // General Status
       schedule: "0 * * * * (Every hour at minute 0)",
