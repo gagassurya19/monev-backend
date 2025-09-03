@@ -3,10 +3,10 @@ require('dotenv').config();
 const databaseConfig = {
   development: {
     host: process.env.DB_HOST || '127.0.0.1',
-    port: parseInt(process.env.DB_PORT) || 3306,
+    port: parseInt(process.env.DB_PORT) || 3307,
     database: process.env.DB_NAME || 'monev_db',
-    user: process.env.DB_USER || 'monev_user',
-    password: process.env.DB_PASSWORD || 'monev_password',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || 'root',
     connectionLimit: 10,
     waitForConnections: true,
     queueLimit: 0,

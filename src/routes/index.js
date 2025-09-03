@@ -10,6 +10,7 @@ const celoeApiRoutes = require("./celoe-api");
 const spEtlRoutes = require("./sp-etl-router");
 const tpEtlApiRoutes = require("./tp-etl-api");
 const heatmapRoutes = require('./heatmap');
+const finalGradeRoutes = require('./final-grade');
 
 // Combine all routes
 const routes = [
@@ -68,6 +69,11 @@ const routes = [
   })),
 
   ...heatmapRoutes.map((route) => ({
+    ...route,
+    path: `${config.api.prefix}${route.path}`,
+  })),
+
+  ...finalGradeRoutes.map((route) => ({
     ...route,
     path: `${config.api.prefix}${route.path}`,
   })),
