@@ -9,6 +9,7 @@ const etlCoursePerformanceRoutes = require("./etl-course-performance");
 const celoeApiRoutes = require("./celoe-api");
 const spEtlRoutes = require("./sp-etl-router");
 const tpEtlApiRoutes = require("./tp-etl-api");
+const heatmapRoutes = require('./heatmap');
 
 // Combine all routes
 const routes = [
@@ -55,13 +56,20 @@ const routes = [
     ...route,
     path: `${config.api.prefix}/sas/summary${route.path}`,
   })),
+
   ...spEtlRoutes.map((route) => ({
     ...route,
     path: `${config.api.prefix}/sp-etl${route.path}`,
   })),
+
   ...tpEtlApiRoutes.map((route) => ({
     ...route,
     path: `${config.api.prefix}/tp-etl${route.path}`,
+  })),
+
+  ...heatmapRoutes.map((route) => ({
+    ...route,
+    path: `${config.api.prefix}${route.path}`,
   })),
 ];
 
