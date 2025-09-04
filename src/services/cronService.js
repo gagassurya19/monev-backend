@@ -69,7 +69,7 @@ class CronService {
       // UDL ETL
       udlETL: {
         enabled: process.env.UDL_ETL_ENABLED === "true",
-        schedule: process.env.UDL_ETL_SCHEDULE || "* * * * *",
+        schedule: process.env.UDL_ETL_SCHEDULE || "0 * * * *",
         description: process.env.UDL_ETL_DESCRIPTION || "Every minute",
         timeout: parseInt(process.env.UDL_ETL_TIMEOUT) || 1800000,
         maxWaitTime: parseInt(process.env.UDL_ETL_MAX_WAIT_TIME) || 1800000,

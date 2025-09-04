@@ -9,8 +9,8 @@ const etlCoursePerformanceRoutes = require("./etl-course-performance");
 const celoeApiRoutes = require("./celoe-api");
 const spEtlRoutes = require("./sp-etl-router");
 const tpEtlApiRoutes = require("./tp-etl-api");
-const heatmapRoutes = require('./heatmap');
-const finalGradeRoutes = require('./final-grade');
+const heatmapRoutes = require("./heatmap");
+const finalGradeRoutes = require("./final-grade");
 
 // Combine all routes
 const routes = [
