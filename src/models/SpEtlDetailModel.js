@@ -182,10 +182,17 @@ class SpEtlDetailModel {
         whereClause += "user_id = ?";
         whereValues.push(filters.user_id);
       }
-      if (filters.course_id) {
-        whereClause += whereClause ? " AND " : " WHERE ";
-        whereClause += "course_id = ?";
-        whereValues.push(filters.course_id);
+
+      // Handle course_id = 0 to show all courses for the user
+      if (filters.course_id !== undefined && filters.course_id !== null) {
+        if (filters.course_id === 0) {
+          // course_id = 0 means show all courses for the user
+          // No additional WHERE clause needed for course_id
+        } else {
+          whereClause += whereClause ? " AND " : " WHERE ";
+          whereClause += "course_id = ?";
+          whereValues.push(filters.course_id);
+        }
       }
 
       // Get user course summary grouped by user_id and course_id
@@ -193,7 +200,7 @@ class SpEtlDetailModel {
         SELECT 
           user_id,
           course_id,
-          course_name,
+          MAX(course_name) as course_name,
           COUNT(*) as total_logs,
           COUNT(DISTINCT module_type) as total_module_types,
           COUNT(DISTINCT module_name) as total_modules,
@@ -210,7 +217,24 @@ class SpEtlDetailModel {
       `;
 
       const result = await database.query(query, whereValues);
-      return result;
+
+      // Format date fields to ensure they are strings or null
+      return result.map((item) => ({
+        ...item,
+        last_activity: item.last_activity
+          ? new Date(item.last_activity * 1000).toISOString()
+          : null,
+        first_activity: item.first_activity
+          ? new Date(item.first_activity * 1000).toISOString()
+          : null,
+        highest_grade: item.highest_grade
+          ? parseFloat(item.highest_grade)
+          : null,
+        lowest_grade: item.lowest_grade ? parseFloat(item.lowest_grade) : null,
+        average_grade: item.average_grade
+          ? parseFloat(item.average_grade)
+          : null,
+      }));
     } catch (error) {
       throw new Error(`Error getting user course summary: ${error.message}`);
     }

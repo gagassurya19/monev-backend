@@ -142,16 +142,14 @@ const tpEtlApiController = {
   // Get User Courses
   getUserCourses: async (request, h) => {
     try {
-      const { user_id, course_id } = request.query;
+      const { user_id } = request.query;
 
       logger.info("Getting TP ETL User Courses with params:", {
         user_id,
-        course_id,
       });
 
       const result = await TpEtlDetailModel.getUserCourses({
         user_id: user_id ? parseInt(user_id) : undefined,
-        course_id: course_id ? parseInt(course_id) : undefined,
       });
 
       return h

@@ -6,9 +6,11 @@ class CeloeApiGatewayService {
   constructor() {
     this.baseUrl = config.celoeapi.baseUrl;
     this.token = "default-webhook-token-change-this"; // This should be configurable
+    this.timeout = config.celoeapi.timeout || 300000; // 5 minutes default
+    this.retryAttempts = config.celoeapi.retryAttempts || 3;
     this.client = axios.create({
       baseURL: this.baseUrl,
-      timeout: 30000,
+      timeout: this.timeout,
       headers: {
         "Content-Type": "application/json",
         // 'Authorization': `Bearer ${this.token}`
@@ -192,11 +194,33 @@ class CeloeApiGatewayService {
     );
   }
 
-  async runTPETL(concurrency = 2) {
+  async runTPETL(concurrency = 2, retryAttempts = null) {
     const data = {};
     if (concurrency) data.concurrency = concurrency;
 
-    return await this.makeRequest("POST", "/api/tp_etl/run", data);
+    const attempts = retryAttempts || this.retryAttempts;
+    let lastError;
+
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        logger.info(`TP ETL attempt ${attempt}/${attempts}`, {
+          timeout: this.timeout,
+          concurrency: concurrency,
+        });
+        return await this.makeRequest("POST", "/api/tp_etl/run", data);
+      } catch (error) {
+        lastError = error;
+        logger.warn(`TP ETL attempt ${attempt} failed: ${error.message}`);
+
+        if (attempt < attempts) {
+          const waitTime = attempt * 30000; // Wait 30s, 60s, 90s between retries
+          logger.info(`Waiting ${waitTime / 1000}s before retry...`);
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+        }
+      }
+    }
+
+    throw lastError;
   }
 
   async exportTPETLData(

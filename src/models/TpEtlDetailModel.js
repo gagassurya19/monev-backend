@@ -219,7 +219,7 @@ class TpEtlDetailModel {
 
   static async getUserCourses(params = {}) {
     try {
-      const { user_id, course_id } = params;
+      const { user_id } = params;
 
       // Build WHERE clause for filters
       let whereClause = "";
@@ -231,37 +231,32 @@ class TpEtlDetailModel {
         whereValues.push(parseInt(user_id));
       }
 
-      // Add course_id filter
-      if (course_id) {
-        if (whereClause) {
-          whereClause += " AND course_id = ?";
-        } else {
-          whereClause = "WHERE course_id = ?";
-        }
-        whereValues.push(parseInt(course_id));
-      }
-
       const query = `
         SELECT 
-          user_id,
-          username,
-          firstname,
-          lastname,
-          email,
           course_id,
           course_name,
           course_shortname,
           COUNT(*) as total_activities,
           MAX(activity_date) as last_activity_date,
           MIN(activity_date) as first_activity_date
-        FROM monev_tp_etl_detail 
+        FROM monev_tp_etl_detail
         ${whereClause}
-        GROUP BY user_id, course_id, username, firstname, lastname, email, course_name, course_shortname
-        ORDER BY user_id, course_id
+        GROUP BY course_id, course_name, course_shortname
+        ORDER BY course_id
       `;
 
       const result = await database.query(query, whereValues);
-      return result;
+
+      // Format date fields to ensure they are strings or null
+      return result.map((item) => ({
+        ...item,
+        last_activity_date: item.last_activity_date
+          ? new Date(item.last_activity_date).toISOString().split("T")[0]
+          : null,
+        first_activity_date: item.first_activity_date
+          ? new Date(item.first_activity_date).toISOString().split("T")[0]
+          : null,
+      }));
     } catch (error) {
       throw new Error(`Error getting user courses: ${error.message}`);
     }

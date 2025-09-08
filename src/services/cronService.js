@@ -51,8 +51,8 @@ class CronService {
       // SP ETL
       spETL: {
         enabled: process.env.SP_ETL_ENABLED === "true",
-        schedule: process.env.SP_ETL_SCHEDULE || "0 * * * *",
-        description: process.env.SP_ETL_DESCRIPTION || "Every hour at minute 0",
+        schedule: process.env.SP_ETL_SCHEDULE || "*/5 * * * *",
+        description: process.env.SP_ETL_DESCRIPTION || "Every minute",
         timeout: parseInt(process.env.SP_ETL_TIMEOUT) || 1800000,
         maxWaitTime: parseInt(process.env.SP_ETL_MAX_WAIT_TIME) || 1800000,
       },
@@ -60,8 +60,8 @@ class CronService {
       // TP ETL
       tpETL: {
         enabled: process.env.TP_ETL_ENABLED === "true",
-        schedule: process.env.TP_ETL_SCHEDULE || "0 * * * *",
-        description: process.env.TP_ETL_DESCRIPTION || "Every hour at minute 0",
+        schedule: process.env.TP_ETL_SCHEDULE || "*/3 * * * *",
+        description: process.env.TP_ETL_DESCRIPTION || "Every minute",
         timeout: parseInt(process.env.TP_ETL_TIMEOUT) || 1800000,
         maxWaitTime: parseInt(process.env.TP_ETL_MAX_WAIT_TIME) || 1800000,
       },
@@ -431,11 +431,11 @@ class CronService {
       this.isTPETLRunning = true;
       logger.info("Starting scheduled TP ETL process");
 
-      // Set timeout for the TP process
+      // Set timeout for the TP process (increased timeout)
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(
-          () => reject(new Error("TP ETL process timeout")),
-          this.config.tpETL.timeout
+          () => reject(new Error("TP ETL process timeout after 30 minutes")),
+          this.config.tpETL.timeout || 1800000 // 30 minutes default
         );
       });
 
