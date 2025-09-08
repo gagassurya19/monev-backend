@@ -90,7 +90,8 @@ class SpEtlSummaryModel {
     limit = 10,
     search = "",
     sort_by = "created_at",
-    sort_order = "DESC"
+    sort_order = "DESC",
+    filters = {}
   ) {
     try {
       let whereClause = "";
@@ -104,24 +105,79 @@ class SpEtlSummaryModel {
         search = search.trim();
       }
 
+      // Build filter conditions
+      const filterConditions = [];
+      const filterValues = [];
+
+      // Add filters for kampusId, fakultasId, prodiId, mataKuliahId using SAS tables
+      if (filters.kampusId) {
+        filterConditions.push("cat.category_site = ?");
+        filterValues.push(filters.kampusId);
+      }
+
+      if (filters.fakultasId) {
+        filterConditions.push("cat.category_id = ?");
+        filterValues.push(filters.fakultasId);
+      }
+
+      if (filters.prodiId) {
+        filterConditions.push("course.program_id = ?");
+        filterValues.push(filters.prodiId);
+      }
+
+      if (filters.mataKuliahId) {
+        filterConditions.push("course.course_id = ?");
+        filterValues.push(filters.mataKuliahId);
+      }
+
       let countQuery, dataQuery, dataValues;
 
-      if (hasSearch) {
-        // Use JOIN query when searching across multiple fields
-        countQuery = `
-          SELECT COUNT(DISTINCT s.id) as total 
+      if (hasSearch || filterConditions.length > 0) {
+        // Use JOIN query when searching or filtering
+        let whereConditions = [];
+        let searchValues = [];
+
+        if (hasSearch) {
+          whereConditions.push(
+            "(s.username LIKE ? OR s.firstname LIKE ? OR s.lastname LIKE ? OR d.course_name LIKE ? OR d.module_name LIKE ?)"
+          );
+          searchValues = [
+            `%${search}%`,
+            `%${search}%`,
+            `%${search}%`,
+            `%${search}%`,
+            `%${search}%`,
+          ];
+        }
+
+        if (filterConditions.length > 0) {
+          whereConditions.push(...filterConditions);
+        }
+
+        const whereClause =
+          whereConditions.length > 0
+            ? `WHERE ${whereConditions.join(" AND ")}`
+            : "";
+
+        // Build JOIN based on filters
+        let joinClause = `
           FROM monev_sp_etl_summary s
           INNER JOIN monev_sp_etl_detail d ON s.user_id = d.user_id
-          WHERE s.username LIKE ? OR s.firstname LIKE ? OR s.lastname LIKE ? 
-                OR d.course_name LIKE ? OR d.module_name LIKE ?
+          INNER JOIN monev_sas_courses course ON d.course_id = course.course_id
         `;
-        whereValues = [
-          `%${search}%`,
-          `%${search}%`,
-          `%${search}%`,
-          `%${search}%`,
-          `%${search}%`,
-        ];
+
+        // Add category join only if needed for kampusId or fakultasId
+        if (filters.kampusId || filters.fakultasId) {
+          joinClause += `
+          INNER JOIN monev_sas_categories cat ON course.faculty_id = cat.category_id`;
+        }
+
+        countQuery = `
+          SELECT COUNT(DISTINCT s.id) as total 
+          ${joinClause}
+          ${whereClause}
+        `;
+        whereValues = [...searchValues, ...filterValues];
       } else {
         // Get total count for pagination without JOIN
         countQuery = `SELECT COUNT(*) as total FROM monev_sp_etl_summary`;
@@ -148,29 +204,61 @@ class SpEtlSummaryModel {
       sort_order = sort_order.toUpperCase() === "ASC" ? "ASC" : "DESC";
 
       // Get paginated data
-      if (hasSearch) {
-        // Use JOIN query when searching across multiple fields
-        dataQuery = `
-          SELECT DISTINCT s.*
+      if (hasSearch || filterConditions.length > 0) {
+        // Use JOIN query when searching or filtering
+        let whereConditions = [];
+        let searchValues = [];
+
+        if (hasSearch) {
+          whereConditions.push(
+            "(s.username LIKE ? OR s.firstname LIKE ? OR s.lastname LIKE ? OR d.course_name LIKE ? OR d.module_name LIKE ?)"
+          );
+          searchValues = [
+            `%${search}%`,
+            `%${search}%`,
+            `%${search}%`,
+            `%${search}%`,
+            `%${search}%`,
+          ];
+        }
+
+        if (filterConditions.length > 0) {
+          whereConditions.push(...filterConditions);
+        }
+
+        const whereClause =
+          whereConditions.length > 0
+            ? `WHERE ${whereConditions.join(" AND ")}`
+            : "";
+
+        // Build JOIN based on filters
+        let joinClause = `
           FROM monev_sp_etl_summary s
           INNER JOIN monev_sp_etl_detail d ON s.user_id = d.user_id
-          WHERE s.username LIKE ? OR s.firstname LIKE ? OR s.lastname LIKE ? 
-                OR d.course_name LIKE ? OR d.module_name LIKE ?
+          INNER JOIN monev_sas_courses course ON d.course_id = course.course_id
+        `;
+
+        // Add category join only if needed for kampusId or fakultasId
+        if (filters.kampusId || filters.fakultasId) {
+          joinClause += `
+          INNER JOIN monev_sas_categories cat ON course.faculty_id = cat.category_id`;
+        }
+
+        dataQuery = `
+          SELECT DISTINCT s.*
+          ${joinClause}
+          ${whereClause}
           ORDER BY s.${sort_by} ${sort_order}
           LIMIT ? OFFSET ?
         `;
+        dataValues = [...searchValues, ...filterValues, limit, offset];
       } else {
-        // Use simple query when no search
+        // Use simple query when no search or filters
         dataQuery = `
           SELECT * FROM monev_sp_etl_summary 
           ORDER BY ${sort_by} ${sort_order}
           LIMIT ? OFFSET ?
         `;
-      }
-
-      if (hasSearch) {
-        dataValues = [...whereValues, limit, offset];
-      } else {
         dataValues = [limit, offset];
       }
 

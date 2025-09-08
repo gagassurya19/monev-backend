@@ -14,14 +14,25 @@ const spEtlApiController = {
         search = "",
         sort_by = "created_at",
         sort_order = "DESC",
+        kampusId,
+        fakultasId,
+        prodiId,
+        mataKuliahId,
       } = request.query;
+
+      const filters = {};
+      if (kampusId) filters.kampusId = kampusId;
+      if (fakultasId) filters.fakultasId = fakultasId;
+      if (prodiId) filters.prodiId = prodiId;
+      if (mataKuliahId) filters.mataKuliahId = mataKuliahId;
 
       const result = await SpEtlSummaryModel.getAllDataWithPagination(
         parseInt(page),
         parseInt(limit),
         search,
         sort_by,
-        sort_order
+        sort_order,
+        filters
       );
 
       return h
