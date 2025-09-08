@@ -131,6 +131,7 @@ class TpEtlSummaryModel {
         search = "",
         sort_by = "id",
         sort_order = "desc",
+        filters = {},
       } = params;
 
       // Calculate offset
@@ -142,10 +143,10 @@ class TpEtlSummaryModel {
 
       if (search && search.trim() !== "") {
         whereClause = `
-					WHERE username LIKE ? 
-					OR firstname LIKE ? 
-					OR lastname LIKE ? 
-					OR email LIKE ?
+					WHERE s.username LIKE ? 
+					OR s.firstname LIKE ? 
+					OR s.lastname LIKE ? 
+					OR s.email LIKE ?
 				`;
         const searchPattern = `%${search.trim()}%`;
         whereValues = [
@@ -155,6 +156,54 @@ class TpEtlSummaryModel {
           searchPattern,
         ];
       }
+
+      // Build filter conditions
+      const filterConditions = [];
+      const filterValues = [];
+
+      if (filters.kampusId) {
+        filterConditions.push("cat.category_site = ?");
+        filterValues.push(filters.kampusId);
+      }
+      if (filters.fakultasId) {
+        filterConditions.push("cat.category_id = ?");
+        filterValues.push(filters.fakultasId);
+      }
+      if (filters.prodiId) {
+        filterConditions.push("course.program_id = ?");
+        filterValues.push(filters.prodiId);
+      }
+      if (filters.mataKuliahId) {
+        filterConditions.push("course.course_id = ?");
+        filterValues.push(filters.mataKuliahId);
+      }
+
+      // Build JOIN based on filters
+      let joinClause = `
+        FROM monev_tp_etl_summary s
+        INNER JOIN monev_tp_etl_detail d ON s.user_id = d.user_id
+        INNER JOIN monev_sas_courses course ON d.course_id = course.course_id
+      `;
+
+      // Add category join only if needed for kampusId or fakultasId
+      if (filters.kampusId || filters.fakultasId) {
+        joinClause += `
+        INNER JOIN monev_sas_categories cat ON course.faculty_id = cat.category_id`;
+      }
+
+      // Combine search and filter conditions
+      const allConditions = [];
+      if (whereClause) {
+        allConditions.push(whereClause.replace("WHERE ", ""));
+      }
+      if (filterConditions.length > 0) {
+        allConditions.push(filterConditions.join(" AND "));
+      }
+
+      const finalWhereClause =
+        allConditions.length > 0 ? `WHERE ${allConditions.join(" AND ")}` : "";
+
+      const finalWhereValues = [...whereValues, ...filterValues];
 
       // Build ORDER BY clause
       const allowedSortFields = [
@@ -185,24 +234,55 @@ class TpEtlSummaryModel {
         sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
       // Count total records for pagination
-      const countQuery = `
+      let countQuery;
+      let countValues;
+
+      if (Object.keys(filters).length > 0) {
+        // Use JOIN for filtering
+        countQuery = `
+          SELECT COUNT(DISTINCT s.id) as total 
+          ${joinClause}
+          ${finalWhereClause}
+        `;
+        countValues = finalWhereValues;
+      } else {
+        // Get total count for pagination without JOIN
+        countQuery = `
 				SELECT COUNT(*) as total 
 				FROM monev_tp_etl_summary 
-				${whereClause}
+				${finalWhereClause}
 			`;
+        countValues = finalWhereValues;
+      }
 
-      const countResult = await database.query(countQuery, whereValues);
+      const countResult = await database.query(countQuery, countValues);
       const totalRecords = countResult[0].total;
 
       // Get paginated data
-      const dataQuery = `
+      let dataQuery;
+      let dataValues;
+
+      if (Object.keys(filters).length > 0) {
+        // Use JOIN for filtering
+        dataQuery = `
+          SELECT DISTINCT s.* 
+          ${joinClause}
+          ${finalWhereClause}
+          ORDER BY s.${sortField} ${orderDirection}
+          LIMIT ? OFFSET ?
+        `;
+        dataValues = [...finalWhereValues, parseInt(limit), offset];
+      } else {
+        // Get data without JOIN
+        dataQuery = `
 				SELECT * FROM monev_tp_etl_summary 
-				${whereClause}
+				${finalWhereClause}
 				ORDER BY ${sortField} ${orderDirection}
 				LIMIT ? OFFSET ?
 			`;
+        dataValues = [...finalWhereValues, parseInt(limit), offset];
+      }
 
-      const dataValues = [...whereValues, parseInt(limit), offset];
       const dataResult = await database.query(dataQuery, dataValues);
 
       // Calculate pagination info

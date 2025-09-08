@@ -15,6 +15,10 @@ const tpEtlApiController = {
         search = "",
         sort_by = "id",
         sort_order = "desc",
+        kampusId,
+        fakultasId,
+        prodiId,
+        mataKuliahId,
       } = request.query;
 
       logger.info(`Getting TP ETL Summary data with params:`, {
@@ -23,7 +27,17 @@ const tpEtlApiController = {
         search,
         sort_by,
         sort_order,
+        kampusId,
+        fakultasId,
+        prodiId,
+        mataKuliahId,
       });
+
+      const filters = {};
+      if (kampusId) filters.kampusId = kampusId;
+      if (fakultasId) filters.fakultasId = fakultasId;
+      if (prodiId) filters.prodiId = prodiId;
+      if (mataKuliahId) filters.mataKuliahId = mataKuliahId;
 
       const result = await TpEtlSummaryModel.getAll({
         page: parseInt(page),
@@ -31,6 +45,7 @@ const tpEtlApiController = {
         search,
         sort_by,
         sort_order,
+        filters,
       });
 
       return h

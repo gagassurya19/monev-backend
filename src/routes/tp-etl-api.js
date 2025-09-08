@@ -20,6 +20,10 @@ const routes = [
           search: Joi.string().optional(),
           sort_by: Joi.string().default("id"),
           sort_order: Joi.string().valid("asc", "desc").default("desc"),
+          kampusId: Joi.string().optional(),
+          fakultasId: Joi.string().optional(),
+          prodiId: Joi.string().optional(),
+          mataKuliahId: Joi.number().integer().optional(),
         }),
       },
       response: {
