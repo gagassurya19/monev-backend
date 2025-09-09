@@ -219,9 +219,7 @@ const userDetectLoginService = {
                 all_archetypes: Array.isArray(record.all_archetypes)
                   ? JSON.stringify(record.all_archetypes)
                   : record.all_archetypes,
-                all_course_ids: Array.isArray(record.all_course_ids)
-                  ? JSON.stringify(record.all_course_ids)
-                  : record.all_course_ids,
+                all_course_ids: record.all_course_ids || null,
                 total_courses: parseInt(record.total_courses) || 0,
                 activity_hour: parseInt(record.activity_hour),
                 activity_date: record.activity_date,

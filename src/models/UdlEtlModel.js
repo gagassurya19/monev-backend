@@ -202,7 +202,12 @@ class UdlEtlModel {
         data.all_role_names || null,
         data.all_role_shortnames || null,
         data.all_archetypes || null,
-        data.all_course_ids || null,
+        (() => {
+          if (Array.isArray(data.all_course_ids)) {
+            return JSON.stringify(data.all_course_ids);
+          }
+          return data.all_course_ids || null;
+        })(),
         parseInt(data.total_courses) || 0,
         parseInt(data.activity_hour) || null,
         data.activity_date,
@@ -268,7 +273,11 @@ class UdlEtlModel {
       fieldsToUpdate.forEach((field) => {
         if (data[field] !== undefined) {
           updateFields.push(`${field} = ?`);
-          if (field.includes("_id") && field !== "user_id") {
+          if (
+            field.includes("_id") &&
+            field !== "user_id" &&
+            field !== "all_course_ids"
+          ) {
             updateValues.push(parseInt(data[field]) || null);
           } else if (
             field === "total_courses" ||
@@ -280,7 +289,16 @@ class UdlEtlModel {
           ) {
             updateValues.push(parseInt(data[field]) || 0);
           } else {
-            updateValues.push(data[field]);
+            // Special handling for all_course_ids to ensure it's a string
+            if (field === "all_course_ids") {
+              if (Array.isArray(data[field])) {
+                updateValues.push(JSON.stringify(data[field]));
+              } else {
+                updateValues.push(data[field]);
+              }
+            } else {
+              updateValues.push(data[field]);
+            }
           }
         }
       });
