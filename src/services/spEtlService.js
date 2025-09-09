@@ -21,6 +21,9 @@ const spEtlService = {
     // Declare variables at function scope level to access in catch block
     let startTime;
     let logId;
+    let totalSummaryRecords = 0;
+    let totalDetailRecords = 0;
+    let finalOffset = 0;
 
     try {
       logger.info("Starting complete SP ETL process sequence...");
@@ -40,46 +43,20 @@ const spEtlService = {
       await spEtlService.runSpEtl(logId);
       logger.info("Main SP ETL process completed successfully");
 
-      // Calculate duration for summary step
-      const summaryStartTime = new Date();
-      const summaryDuration = spEtlService.calculateDuration(
-        startTime,
-        summaryStartTime
-      );
-
-      // Update log for summary step
-      await spEtlService.updateLogSpEtlLogs(
-        logId,
-        enumTypeRun.EXECUTE_SP_ETL_SUMMARY,
-        summaryStartTime,
-        summaryDuration,
-        enumStatus.IN_PROGRESS
-      );
-
       // Step 2: Run SP ETL Summary process
       logger.info("=== Step 2: Running SP ETL Summary process ===");
-      await spEtlService.runSpEtlSummary(logId);
-      logger.info("SP ETL Summary process completed successfully");
-
-      // Calculate duration for detail step
-      const detailStartTime = new Date();
-      const detailDuration = spEtlService.calculateDuration(
-        startTime,
-        detailStartTime
-      );
-
-      // Update log for detail step
-      await spEtlService.updateLogSpEtlLogs(
+      const summaryResult = await spEtlService.runSpEtlSummary(
         logId,
-        enumTypeRun.EXECUTE_SP_ETL_DETAIL,
-        detailStartTime,
-        detailDuration,
-        enumStatus.IN_PROGRESS
+        startTime
       );
+      totalSummaryRecords = summaryResult.totalProcessed || 0;
+      logger.info("SP ETL Summary process completed successfully");
 
       // Step 3: Run SP ETL Detail process
       logger.info("=== Step 3: Running SP ETL Detail process ===");
-      await spEtlService.runSpEtlDetail(logId);
+      const detailResult = await spEtlService.runSpEtlDetail(logId, startTime);
+      totalDetailRecords = detailResult.totalProcessed || 0;
+      finalOffset = detailResult.finalOffset || 0;
       logger.info("SP ETL Detail process completed successfully");
 
       logger.info(
@@ -90,13 +67,18 @@ const spEtlService = {
       const endTime = new Date();
       const finalDuration = spEtlService.calculateDuration(startTime, endTime);
 
-      // Update final log status
+      // Calculate total records (summary + detail)
+      const totalRecords = totalSummaryRecords + totalDetailRecords;
+
+      // Update final log status with aggregated data
       await spEtlService.updateLogSpEtlLogs(
         logId,
         enumTypeRun.EXECUTE_RUN_SP_ETL,
         endTime,
         finalDuration,
-        enumStatus.SUCCESS
+        enumStatus.SUCCESS,
+        totalRecords,
+        finalOffset
       );
     } catch (error) {
       logger.error("SP ETL process sequence failed:", error.message);
@@ -115,7 +97,9 @@ const spEtlService = {
           enumTypeRun.EXECUTE_RUN_SP_ETL,
           errorTime,
           errorDuration,
-          enumStatus.FAILED
+          enumStatus.FAILED,
+          totalSummaryRecords + totalDetailRecords,
+          finalOffset
         );
       } catch (logError) {
         logger.error("Failed to update log status:", logError.message);
@@ -164,7 +148,7 @@ const spEtlService = {
     }
   },
 
-  runSpEtlSummary: async (logId) => {
+  runSpEtlSummary: async (logId, startTime) => {
     try {
       logger.info("Starting SP ETL summary process...");
 
@@ -273,14 +257,36 @@ const spEtlService = {
           logId,
           enumTypeRun.EXECUTE_SP_ETL_SUMMARY,
           new Date(),
-          null,
-          enumStatus.SUCCESS,
+          null, // duration will be calculated later
+          enumStatus.IN_PROGRESS, // Keep as in_progress until duration is calculated
           totalProcessed,
-          null
+          offset
         );
       } else {
         logger.warn("No data received from API");
       }
+
+      // Update final status with duration for summary
+      const summaryEndTime = new Date();
+      const summaryDuration = spEtlService.calculateDuration(
+        startTime,
+        summaryEndTime
+      );
+      await spEtlService.updateLogSpEtlLogs(
+        logId,
+        enumTypeRun.EXECUTE_SP_ETL_SUMMARY,
+        summaryEndTime,
+        summaryDuration,
+        enumStatus.SUCCESS,
+        totalProcessed,
+        offset
+      );
+
+      // Return summary data
+      return {
+        totalProcessed,
+        finalOffset: offset,
+      };
     } catch (error) {
       logger.error("SP ETL summary process failed:", error.message);
 
@@ -293,7 +299,7 @@ const spEtlService = {
           null,
           enumStatus.FAILED,
           totalProcessed,
-          null
+          offset
         );
       } catch (logError) {
         logger.error("Failed to update log status:", logError.message);
@@ -304,7 +310,7 @@ const spEtlService = {
     }
   },
 
-  runSpEtlDetail: async (logId) => {
+  runSpEtlDetail: async (logId, startTime) => {
     try {
       logger.info("Starting SP ETL detail process...");
 
@@ -396,6 +402,17 @@ const spEtlService = {
         try {
           const result = await SpEtlDetailModel.bulkInsert(allData);
           logger.info(`SP ETL detail bulk insert completed: ${result.message}`);
+
+          // Update log status for detail completion
+          await spEtlService.updateLogSpEtlLogs(
+            logId,
+            enumTypeRun.EXECUTE_SP_ETL_DETAIL,
+            new Date(),
+            null, // duration will be calculated later
+            enumStatus.IN_PROGRESS, // Keep as in_progress until duration is calculated
+            totalProcessed,
+            offset
+          );
         } catch (bulkError) {
           logger.error("Bulk insert failed with details:", {
             error: bulkError.message,
@@ -407,7 +424,40 @@ const spEtlService = {
         }
       } else {
         logger.warn("No detail data received from API");
+
+        // Update log status for detail completion even with no data
+        await spEtlService.updateLogSpEtlLogs(
+          logId,
+          enumTypeRun.EXECUTE_SP_ETL_DETAIL,
+          new Date(),
+          null, // duration will be calculated later
+          enumStatus.IN_PROGRESS, // Keep as in_progress until duration is calculated
+          0,
+          offset
+        );
       }
+
+      // Update final status with duration for detail
+      const detailEndTime = new Date();
+      const detailDuration = spEtlService.calculateDuration(
+        startTime,
+        detailEndTime
+      );
+      await spEtlService.updateLogSpEtlLogs(
+        logId,
+        enumTypeRun.EXECUTE_SP_ETL_DETAIL,
+        detailEndTime,
+        detailDuration,
+        enumStatus.SUCCESS,
+        totalProcessed,
+        offset
+      );
+
+      // Return detail data
+      return {
+        totalProcessed,
+        finalOffset: offset,
+      };
     } catch (error) {
       logger.error("SP ETL detail process failed:", error.message);
 
@@ -420,7 +470,7 @@ const spEtlService = {
           null,
           enumStatus.FAILED,
           totalProcessed,
-          null
+          offset
         );
       } catch (logError) {
         logger.error("Failed to update detail log status:", logError.message);
@@ -466,16 +516,61 @@ const spEtlService = {
     offset
   ) => {
     try {
-      const query = `UPDATE monev_sp_etl_logs SET type_run = ?, end_date = ?, duration = ?, status = ?, total_records = ?, offset = ? WHERE id = ?`;
-      const values = [
+      // Build dynamic update query based on provided parameters
+      const updateFields = [];
+      const values = [];
+
+      if (typeRun !== undefined) {
+        updateFields.push("type_run = ?");
+        values.push(typeRun);
+      }
+
+      if (endDate !== undefined) {
+        updateFields.push("end_date = ?");
+        values.push(endDate);
+      }
+
+      if (duration !== undefined) {
+        updateFields.push("duration = ?");
+        values.push(duration);
+      }
+
+      if (status !== undefined) {
+        updateFields.push("status = ?");
+        values.push(status);
+      }
+
+      if (totalRecords !== undefined) {
+        updateFields.push("total_records = ?");
+        values.push(totalRecords);
+      }
+
+      if (offset !== undefined) {
+        updateFields.push("offset = ?");
+        values.push(offset);
+      }
+
+      if (updateFields.length === 0) {
+        logger.warn("No fields to update for SP ETL log");
+        return;
+      }
+
+      values.push(logId);
+
+      const query = `UPDATE monev_sp_etl_logs SET ${updateFields.join(
+        ", "
+      )} WHERE id = ?`;
+
+      logger.info(`Updating SP ETL log ${logId}:`, {
         typeRun,
         endDate,
-        duration || null,
+        duration,
         status,
-        totalRecords || null,
-        offset || null,
-        logId,
-      ];
+        totalRecords,
+        offset,
+        updateFields,
+      });
+
       const result = await database.query(query, values);
 
       return result;

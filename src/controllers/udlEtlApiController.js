@@ -2,6 +2,7 @@ const database = require("../database/connection");
 const logger = require("../utils/logger");
 const ResponseService = require("../services/responseService");
 const UdlEtlLogModel = require("../models/UdlEtlLogModel");
+const cronService = require("../services/cronService");
 
 const udlEtlApiController = {
   getUdlEtlLogs: async (request, h) => {
@@ -36,10 +37,14 @@ const udlEtlApiController = {
   },
   getUdlEtlStatus: async (request, h) => {
     try {
-      const result = await UdlEtlLogModel.getStatus();
-
+      const status = cronService.getUDLETLStatus();
       return h
-        .response(ResponseService.success(result, result.message))
+        .response(
+          ResponseService.success(
+            status,
+            "UDL ETL status retrieved successfully"
+          )
+        )
         .code(200);
     } catch (error) {
       logger.error("Error getting UDL ETL status:", error);
@@ -48,39 +53,57 @@ const udlEtlApiController = {
         .code(500);
     }
   },
-  runUdlEtl: async (request, h) => {
+
+  // Start UDL ETL continuously
+  startUdlEtlContinuous: async (request, h) => {
     try {
-      // TODO: Implement UDL ETL run functionality
+      // Get parameters from payload only
+      const payloadParams = request.payload || {};
+      const interval = payloadParams.interval;
+      const retry_interval = payloadParams.retry_interval;
+
+      // Convert to numbers if provided (in seconds)
+      const intervalSeconds = interval ? parseInt(interval) : null;
+      const retryIntervalSeconds = retry_interval
+        ? parseInt(retry_interval)
+        : null;
+
+      // Debug logging
+      console.log("UDL ETL Controller - Parsed params:", {
+        intervalSeconds,
+        retryIntervalSeconds,
+      });
+
+      const result = cronService.startUdlEtlContinuous(
+        intervalSeconds,
+        retryIntervalSeconds
+      );
+      return h
+        .response(ResponseService.success(result, result.message))
+        .code(200);
+    } catch (error) {
+      logger.error("Error starting UDL ETL continuously:", error);
       return h
         .response(
-          ResponseService.success(
-            null,
-            "UDL ETL run functionality not implemented"
-          )
+          ResponseService.internalError("Failed to start UDL ETL continuously")
         )
-        .code(501);
-    } catch (error) {
-      logger.error("Error running UDL ETL:", error);
-      return h
-        .response(ResponseService.internalError("Failed to run UDL ETL"))
         .code(500);
     }
   },
-  stopUdlEtl: async (request, h) => {
+
+  // Stop UDL ETL continuously
+  stopUdlEtlContinuous: async (request, h) => {
     try {
-      // TODO: Implement UDL ETL stop functionality
+      const result = cronService.stopUdlEtlContinuous();
+      return h
+        .response(ResponseService.success(result, result.message))
+        .code(200);
+    } catch (error) {
+      logger.error("Error stopping UDL ETL continuously:", error);
       return h
         .response(
-          ResponseService.success(
-            null,
-            "UDL ETL stop functionality not implemented"
-          )
+          ResponseService.internalError("Failed to stop UDL ETL continuously")
         )
-        .code(501);
-    } catch (error) {
-      logger.error("Error stopping UDL ETL:", error);
-      return h
-        .response(ResponseService.internalError("Failed to stop UDL ETL"))
         .code(500);
     }
   },

@@ -12,12 +12,21 @@ class CronService {
     this.sasCategorySubjectTask = null;
     this.isETLCoursePerformanceRunning = false;
     this.isSASCategorySubjectRunning = false;
-    this.spETLTask = null;
     this.isSPETLRunning = false;
-    this.tpETLTask = null;
+    this.spETLStartTime = null;
+    this.spETLContinuousInterval = null;
+    this.spETLInterval = null;
+    this.spETLRetryInterval = null;
     this.isTPETLRunning = false;
-    this.udlETLTask = null;
+    this.tpETLStartTime = null;
+    this.tpETLContinuousInterval = null;
+    this.tpETLInterval = null;
+    this.tpETLRetryInterval = null;
     this.isUDLETLRunning = false;
+    this.udlETLStartTime = null;
+    this.udlETLContinuousInterval = null;
+    this.udlETLInterval = null;
+    this.udlETLRetryInterval = null;
     // Load configuration from environment variables
     this.config = {
       timezone: process.env.CRON_TIMEZONE || "Asia/Jakarta",
@@ -48,31 +57,23 @@ class CronService {
           parseInt(process.env.SAS_CATEGORY_SUBJECT_MAX_WAIT_TIME) || 1800000,
       },
 
-      // SP ETL
-      spETL: {
-        enabled: process.env.SP_ETL_ENABLED === "true",
-        schedule: process.env.SP_ETL_SCHEDULE || "0 * * * *",
-        description: process.env.SP_ETL_DESCRIPTION || "Every minute",
-        timeout: parseInt(process.env.SP_ETL_TIMEOUT) || 1800000,
-        maxWaitTime: parseInt(process.env.SP_ETL_MAX_WAIT_TIME) || 1800000,
-      },
-
-      // TP ETL
-      tpETL: {
-        enabled: process.env.TP_ETL_ENABLED === "true",
-        schedule: process.env.TP_ETL_SCHEDULE || "0 * * * *",
-        description: process.env.TP_ETL_DESCRIPTION || "Every minute",
-        timeout: parseInt(process.env.TP_ETL_TIMEOUT) || 1800000,
-        maxWaitTime: parseInt(process.env.TP_ETL_MAX_WAIT_TIME) || 1800000,
-      },
-
-      // UDL ETL
-      udlETL: {
-        enabled: process.env.UDL_ETL_ENABLED === "true",
-        schedule: process.env.UDL_ETL_SCHEDULE || "* * * * *",
-        description: process.env.UDL_ETL_DESCRIPTION || "Every minute",
-        timeout: parseInt(process.env.UDL_ETL_TIMEOUT) || 1800000,
-        maxWaitTime: parseInt(process.env.UDL_ETL_MAX_WAIT_TIME) || 1800000,
+      // Continuous ETL settings
+      continuousETL: {
+        spETL: {
+          enabled: process.env.SP_ETL_CONTINUOUS_ENABLED === "true",
+          interval: parseInt(process.env.SP_ETL_INTERVAL) || 300000, // 5 minutes
+          retryInterval: parseInt(process.env.SP_ETL_RETRY_INTERVAL) || 120000, // 2 minutes
+        },
+        tpETL: {
+          enabled: process.env.TP_ETL_CONTINUOUS_ENABLED === "true",
+          interval: parseInt(process.env.TP_ETL_INTERVAL) || 300000, // 5 minutes
+          retryInterval: parseInt(process.env.TP_ETL_RETRY_INTERVAL) || 120000, // 2 minutes
+        },
+        udlETL: {
+          enabled: process.env.UDL_ETL_CONTINUOUS_ENABLED === "true",
+          interval: parseInt(process.env.UDL_ETL_INTERVAL) || 300000, // 5 minutes
+          retryInterval: parseInt(process.env.UDL_ETL_RETRY_INTERVAL) || 120000, // 2 minutes
+        },
       },
     };
   }
@@ -126,63 +127,6 @@ class CronService {
       logger.info(
         "SAS Category Subject cron job disabled via SAS_CATEGORY_SUBJECT_ENABLED=false"
       );
-    }
-
-    // Schedule SP ETL if enabled
-    if (this.config.spETL.enabled) {
-      this.spETLTask = cron.schedule(
-        this.config.spETL.schedule,
-        async () => {
-          await this.runSPETL();
-        },
-        {
-          scheduled: true,
-          timezone: this.config.timezone,
-        }
-      );
-      logger.info(
-        `SP ETL cron job scheduled: ${this.config.spETL.description}`
-      );
-    } else {
-      logger.info("SP ETL cron job disabled via SP_ETL_ENABLED=false");
-    }
-
-    // Schedule TP ETL if enabled
-    if (this.config.tpETL.enabled) {
-      this.tpETLTask = cron.schedule(
-        this.config.tpETL.schedule,
-        async () => {
-          await this.runTPETL();
-        },
-        {
-          scheduled: true,
-          timezone: this.config.timezone,
-        }
-      );
-      logger.info(
-        `TP ETL cron job scheduled: ${this.config.tpETL.description}`
-      );
-    } else {
-      logger.info("TP ETL cron job disabled via TP_ETL_ENABLED=false");
-    }
-
-    // Schedule UDL ETL if enabled
-    if (this.config.udlETL.enabled) {
-      this.udlETLTask = cron.schedule(
-        this.config.udlETL.schedule,
-        async () => {
-          await this.runUDLETL();
-        },
-        {
-          scheduled: true,
-          timezone: this.config.timezone,
-        }
-      );
-      logger.info(
-        `UDL ETL cron job scheduled: ${this.config.udlETL.description}`
-      );
-    } else {
-      logger.info("UDL ETL cron job disabled via UDL_ETL_ENABLED=false");
     }
 
     logger.info("Multiple ETL cron jobs initialization completed");
@@ -336,183 +280,6 @@ class CronService {
     }
   }
 
-  // Run SP ETL with proper waiting logic
-  async runSPETL() {
-    // SP ETL can run every minute
-    let waitTime = 0;
-    const maxWaitTime = this.config.spETL.maxWaitTime;
-
-    if (this.isSPETLRunning) {
-      logger.warn(
-        "SP ETL process is already running, waiting for it to finish..."
-      );
-      while (this.isSPETLRunning && waitTime < maxWaitTime) {
-        await new Promise((resolve) => setTimeout(resolve, 10000));
-        waitTime += 10000;
-        logger.info(
-          `Waiting for SP ETL process to finish... (${Math.round(
-            waitTime / 1000
-          )}s)`
-        );
-      }
-
-      if (this.isSPETLRunning) {
-        logger.error(
-          `SP ETL process is still running after ${Math.round(
-            maxWaitTime / 1000
-          )}s, skipping this scheduled run`
-        );
-        return;
-      }
-
-      logger.info("Previous SP ETL process finished, proceeding with new run");
-    }
-
-    try {
-      this.isSPETLRunning = true;
-      logger.info("Starting scheduled SP ETL process");
-
-      // Set timeout for the SP process
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(
-          () => reject(new Error("SP ETL process timeout")),
-          this.config.spETL.timeout
-        );
-      });
-
-      const spETLPromise = spETLService.runCronSpEtl();
-
-      await Promise.race([spETLPromise, timeoutPromise]);
-
-      logger.info("Scheduled SP ETL process completed successfully");
-    } catch (error) {
-      logger.error("Scheduled SP ETL process failed:", {
-        message: error.message,
-        stack: error.stack,
-      });
-    } finally {
-      this.isSPETLRunning = false;
-    }
-  }
-
-  // Run TP ETL with proper waiting logic
-  async runTPETL() {
-    // TP ETL can run every minute
-    let waitTime = 0;
-    const maxWaitTime = this.config.tpETL.maxWaitTime;
-
-    if (this.isTPETLRunning) {
-      logger.warn(
-        "TP ETL process is already running, waiting for it to finish..."
-      );
-      while (this.isTPETLRunning && waitTime < maxWaitTime) {
-        await new Promise((resolve) => setTimeout(resolve, 10000));
-        waitTime += 10000;
-        logger.info(
-          `Waiting for TP ETL process to finish... (${Math.round(
-            waitTime / 1000
-          )}s)`
-        );
-      }
-
-      if (this.isTPETLRunning) {
-        logger.error(
-          `TP ETL process is still running after ${Math.round(
-            maxWaitTime / 1000
-          )}s, skipping this scheduled run`
-        );
-        return;
-      }
-
-      logger.info("Previous TP ETL process finished, proceeding with new run");
-    }
-
-    try {
-      this.isTPETLRunning = true;
-      logger.info("Starting scheduled TP ETL process");
-
-      // Set timeout for the TP process (increased timeout)
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(
-          () => reject(new Error("TP ETL process timeout after 30 minutes")),
-          this.config.tpETL.timeout || 1800000 // 30 minutes default
-        );
-      });
-
-      const tpETLPromise = teacherPerformanceEtlService.runCron();
-
-      await Promise.race([tpETLPromise, timeoutPromise]);
-
-      logger.info("Scheduled TP ETL process completed successfully");
-    } catch (error) {
-      logger.error("Scheduled TP ETL process failed:", {
-        message: error.message,
-        stack: error.stack,
-      });
-    } finally {
-      this.isTPETLRunning = false;
-    }
-  }
-
-  // Run UDL ETL with proper waiting logic
-  async runUDLETL() {
-    // UDL ETL can run every minute
-    let waitTime = 0;
-    const maxWaitTime = this.config.udlETL.maxWaitTime;
-
-    if (this.isUDLETLRunning) {
-      logger.warn(
-        "UDL ETL process is already running, waiting for it to finish..."
-      );
-      while (this.isUDLETLRunning && waitTime < maxWaitTime) {
-        await new Promise((resolve) => setTimeout(resolve, 10000));
-        waitTime += 10000;
-        logger.info(
-          `Waiting for UDL ETL process to finish... (${Math.round(
-            waitTime / 1000
-          )}s)`
-        );
-      }
-
-      if (this.isUDLETLRunning) {
-        logger.error(
-          `UDL ETL process is still running after ${Math.round(
-            maxWaitTime / 1000
-          )}s, skipping this scheduled run`
-        );
-        return;
-      }
-
-      logger.info("Previous UDL ETL process finished, proceeding with new run");
-    }
-
-    try {
-      this.isUDLETLRunning = true;
-      logger.info("Starting scheduled UDL ETL process");
-
-      // Set timeout for the UDL process
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(
-          () => reject(new Error("UDL ETL process timeout")),
-          this.config.udlETL.timeout
-        );
-      });
-
-      const udlETLPromise = userDetectLoginService.runCron();
-
-      await Promise.race([udlETLPromise, timeoutPromise]);
-
-      logger.info("Scheduled UDL ETL process completed successfully");
-    } catch (error) {
-      logger.error("Scheduled UDL ETL process failed:", {
-        message: error.message,
-        stack: error.stack,
-      });
-    } finally {
-      this.isUDLETLRunning = false;
-    }
-  }
-
   // Start the cron jobs
   start() {
     if (
@@ -528,21 +295,6 @@ class CronService {
       logger.info("SAS Category Subject cron job started");
     }
 
-    if (this.config.spETL.enabled && this.spETLTask) {
-      this.spETLTask.start();
-      logger.info("SP ETL cron job started");
-    }
-
-    if (this.config.tpETL.enabled && this.tpETLTask) {
-      this.tpETLTask.start();
-      logger.info("TP ETL cron job started");
-    }
-
-    if (this.config.udlETL.enabled && this.udlETLTask) {
-      this.udlETLTask.start();
-      logger.info("UDL ETL cron job started");
-    }
-
     logger.info("All enabled cron jobs started");
   }
 
@@ -556,21 +308,6 @@ class CronService {
     if (this.sasCategorySubjectTask) {
       this.sasCategorySubjectTask.stop();
       logger.info("SAS Category Subject cron job stopped");
-    }
-
-    if (this.spETLTask) {
-      this.spETLTask.stop();
-      logger.info("SP ETL cron job stopped");
-    }
-
-    if (this.tpETLTask) {
-      this.tpETLTask.stop();
-      logger.info("TP ETL cron job stopped");
-    }
-
-    if (this.udlETLTask) {
-      this.udlETLTask.stop();
-      logger.info("UDL ETL cron job stopped");
     }
 
     logger.info("All cron jobs stopped");
@@ -590,25 +327,332 @@ class CronService {
       logger.info("SAS Category Subject cron job destroyed");
     }
 
-    if (this.spETLTask) {
-      this.spETLTask.destroy();
-      this.spETLTask = null;
-      logger.info("SP ETL cron job destroyed");
-    }
-
-    if (this.tpETLTask) {
-      this.tpETLTask.destroy();
-      this.tpETLTask = null;
-      logger.info("TP ETL cron job destroyed");
-    }
-
-    if (this.udlETLTask) {
-      this.udlETLTask.destroy();
-      this.udlETLTask = null;
-      logger.info("UDL ETL cron job destroyed");
-    }
-
     logger.info("All cron jobs destroyed");
+  }
+
+  // Manual trigger methods (single run)
+  async runSPETLManual() {
+    if (this.isSPETLRunning) {
+      throw new Error("SP ETL is already running");
+    }
+    this.isSPETLRunning = true;
+    this.spETLStartTime = new Date();
+    try {
+      await spETLService.runCronSpEtl();
+    } finally {
+      this.isSPETLRunning = false;
+      this.spETLStartTime = null;
+    }
+  }
+
+  async runTPETLManual() {
+    if (this.isTPETLRunning) {
+      throw new Error("TP ETL is already running");
+    }
+    this.isTPETLRunning = true;
+    this.tpETLStartTime = new Date();
+    try {
+      await teacherPerformanceEtlService.runCron();
+    } finally {
+      this.isTPETLRunning = false;
+      this.tpETLStartTime = null;
+    }
+  }
+
+  async runUDLETLManual() {
+    if (this.isUDLETLRunning) {
+      throw new Error("UDL ETL is already running");
+    }
+    this.isUDLETLRunning = true;
+    this.udlETLStartTime = new Date();
+    try {
+      await userDetectLoginService.runCron();
+    } finally {
+      this.isUDLETLRunning = false;
+      this.udlETLStartTime = null;
+    }
+  }
+
+  // Continuous running methods
+  startSpEtlContinuous(interval = null, retryInterval = null) {
+    if (this.isSPETLRunning) {
+      return {
+        success: false,
+        message: "SP ETL is already running continuously",
+      };
+    }
+
+    this.isSPETLRunning = true;
+    this.spETLStartTime = new Date();
+
+    // Use provided interval or fallback to config (convert seconds to milliseconds)
+    this.spETLInterval = interval
+      ? interval * 1000
+      : this.config.continuousETL.spETL.interval;
+    this.spETLRetryInterval = retryInterval
+      ? retryInterval * 1000
+      : this.config.continuousETL.spETL.retryInterval;
+
+    // Start continuous loop
+    this.spETLContinuousLoop();
+
+    logger.info(
+      `SP ETL continuous running started with interval: ${this.spETLInterval}ms, retry: ${this.spETLRetryInterval}ms`
+    );
+    return {
+      success: true,
+      message: "SP ETL started continuously",
+      interval: Math.floor(this.spETLInterval / 1000), // Convert to seconds
+      retry_interval: Math.floor(this.spETLRetryInterval / 1000), // Convert to seconds
+    };
+  }
+
+  stopSpEtlContinuous() {
+    if (!this.isSPETLRunning) {
+      return { success: false, message: "SP ETL is not running" };
+    }
+
+    this.isSPETLRunning = false;
+    this.spETLStartTime = null;
+
+    // Clear interval if exists
+    if (this.spETLContinuousInterval) {
+      clearInterval(this.spETLContinuousInterval);
+      this.spETLContinuousInterval = null;
+    }
+
+    logger.info("SP ETL continuous running stopped");
+    return { success: true, message: "SP ETL stopped" };
+  }
+
+  async spETLContinuousLoop() {
+    while (this.isSPETLRunning) {
+      try {
+        logger.info("Running SP ETL in continuous mode...");
+        await spETLService.runCronSpEtl();
+
+        // Wait interval before next run
+        const interval =
+          this.spETLInterval || this.config.continuousETL.spETL.interval;
+        await new Promise((resolve) => setTimeout(resolve, interval));
+      } catch (error) {
+        logger.error("Error in continuous SP ETL:", error);
+
+        // Wait before retry
+        const retryInterval =
+          this.spETLRetryInterval ||
+          this.config.continuousETL.spETL.retryInterval;
+        await new Promise((resolve) => setTimeout(resolve, retryInterval));
+      }
+    }
+  }
+
+  startTpEtlContinuous(interval = null, retryInterval = null) {
+    if (this.isTPETLRunning) {
+      return {
+        success: false,
+        message: "TP ETL is already running continuously",
+      };
+    }
+
+    this.isTPETLRunning = true;
+    this.tpETLStartTime = new Date();
+
+    // Use provided interval or fallback to config (convert seconds to milliseconds)
+    this.tpETLInterval = interval
+      ? interval * 1000
+      : this.config.continuousETL.tpETL.interval;
+    this.tpETLRetryInterval = retryInterval
+      ? retryInterval * 1000
+      : this.config.continuousETL.tpETL.retryInterval;
+
+    // Start continuous loop
+    this.tpETLContinuousLoop();
+
+    logger.info(
+      `TP ETL continuous running started with interval: ${this.tpETLInterval}ms, retry: ${this.tpETLRetryInterval}ms`
+    );
+    return {
+      success: true,
+      message: "TP ETL started continuously",
+      interval: Math.floor(this.tpETLInterval / 1000), // Convert to seconds
+      retry_interval: Math.floor(this.tpETLRetryInterval / 1000), // Convert to seconds
+    };
+  }
+
+  stopTpEtlContinuous() {
+    if (!this.isTPETLRunning) {
+      return { success: false, message: "TP ETL is not running" };
+    }
+
+    this.isTPETLRunning = false;
+    this.tpETLStartTime = null;
+
+    // Clear interval if exists
+    if (this.tpETLContinuousInterval) {
+      clearInterval(this.tpETLContinuousInterval);
+      this.tpETLContinuousInterval = null;
+    }
+
+    logger.info("TP ETL continuous running stopped");
+    return { success: true, message: "TP ETL stopped" };
+  }
+
+  async tpETLContinuousLoop() {
+    while (this.isTPETLRunning) {
+      try {
+        logger.info("Running TP ETL in continuous mode...");
+        await teacherPerformanceEtlService.runCron();
+
+        // Wait interval before next run
+        const interval =
+          this.tpETLInterval || this.config.continuousETL.tpETL.interval;
+        await new Promise((resolve) => setTimeout(resolve, interval));
+      } catch (error) {
+        logger.error("Error in continuous TP ETL:", error);
+
+        // Wait before retry
+        const retryInterval =
+          this.tpETLRetryInterval ||
+          this.config.continuousETL.tpETL.retryInterval;
+        await new Promise((resolve) => setTimeout(resolve, retryInterval));
+      }
+    }
+  }
+
+  startUdlEtlContinuous(interval = null, retryInterval = null) {
+    if (this.isUDLETLRunning) {
+      return {
+        success: false,
+        message: "UDL ETL is already running continuously",
+      };
+    }
+
+    this.isUDLETLRunning = true;
+    this.udlETLStartTime = new Date();
+
+    // Use provided interval or fallback to config (convert seconds to milliseconds)
+    this.udlETLInterval = interval
+      ? interval * 1000
+      : this.config.continuousETL.udlETL.interval;
+    this.udlETLRetryInterval = retryInterval
+      ? retryInterval * 1000
+      : this.config.continuousETL.udlETL.retryInterval;
+
+    // Start continuous loop
+    this.udlETLContinuousLoop();
+
+    logger.info(
+      `UDL ETL continuous running started with interval: ${this.udlETLInterval}ms, retry: ${this.udlETLRetryInterval}ms`
+    );
+    return {
+      success: true,
+      message: "UDL ETL started continuously",
+      interval: Math.floor(this.udlETLInterval / 1000), // Convert to seconds
+      retry_interval: Math.floor(this.udlETLRetryInterval / 1000), // Convert to seconds
+    };
+  }
+
+  stopUdlEtlContinuous() {
+    if (!this.isUDLETLRunning) {
+      return { success: false, message: "UDL ETL is not running" };
+    }
+
+    this.isUDLETLRunning = false;
+    this.udlETLStartTime = null;
+
+    // Clear interval if exists
+    if (this.udlETLContinuousInterval) {
+      clearInterval(this.udlETLContinuousInterval);
+      this.udlETLContinuousInterval = null;
+    }
+
+    logger.info("UDL ETL continuous running stopped");
+    return { success: true, message: "UDL ETL stopped" };
+  }
+
+  async udlETLContinuousLoop() {
+    while (this.isUDLETLRunning) {
+      try {
+        logger.info("Running UDL ETL in continuous mode...");
+        await userDetectLoginService.runCron();
+
+        // Wait interval before next run
+        const interval =
+          this.udlETLInterval || this.config.continuousETL.udlETL.interval;
+        await new Promise((resolve) => setTimeout(resolve, interval));
+      } catch (error) {
+        logger.error("Error in continuous UDL ETL:", error);
+
+        // Wait before retry
+        const retryInterval =
+          this.udlETLRetryInterval ||
+          this.config.continuousETL.udlETL.retryInterval;
+        await new Promise((resolve) => setTimeout(resolve, retryInterval));
+      }
+    }
+  }
+
+  // Get individual ETL status
+  getSPETLStatus() {
+    const duration = this.spETLStartTime
+      ? Math.floor((new Date() - this.spETLStartTime) / 1000)
+      : 0;
+
+    return {
+      is_running: this.isSPETLRunning,
+      start_time: this.spETLStartTime,
+      duration_seconds: duration,
+      status: this.isSPETLRunning ? "running" : "stopped",
+      interval: Math.floor(
+        (this.spETLInterval || this.config.continuousETL.spETL.interval) / 1000
+      ), // Convert to seconds
+      retry_interval: Math.floor(
+        (this.spETLRetryInterval ||
+          this.config.continuousETL.spETL.retryInterval) / 1000
+      ), // Convert to seconds
+    };
+  }
+
+  getTPETLStatus() {
+    const duration = this.tpETLStartTime
+      ? Math.floor((new Date() - this.tpETLStartTime) / 1000)
+      : 0;
+
+    return {
+      is_running: this.isTPETLRunning,
+      start_time: this.tpETLStartTime,
+      duration_seconds: duration,
+      status: this.isTPETLRunning ? "running" : "stopped",
+      interval: Math.floor(
+        (this.tpETLInterval || this.config.continuousETL.tpETL.interval) / 1000
+      ), // Convert to seconds
+      retry_interval: Math.floor(
+        (this.tpETLRetryInterval ||
+          this.config.continuousETL.tpETL.retryInterval) / 1000
+      ), // Convert to seconds
+    };
+  }
+
+  getUDLETLStatus() {
+    const duration = this.udlETLStartTime
+      ? Math.floor((new Date() - this.udlETLStartTime) / 1000)
+      : 0;
+
+    return {
+      is_running: this.isUDLETLRunning,
+      start_time: this.udlETLStartTime,
+      duration_seconds: duration,
+      status: this.isUDLETLRunning ? "running" : "stopped",
+      interval: Math.floor(
+        (this.udlETLInterval || this.config.continuousETL.udlETL.interval) /
+          1000
+      ), // Convert to seconds
+      retry_interval: Math.floor(
+        (this.udlETLRetryInterval ||
+          this.config.continuousETL.udlETL.retryInterval) / 1000
+      ), // Convert to seconds
+    };
   }
 
   // Get cron status for all services

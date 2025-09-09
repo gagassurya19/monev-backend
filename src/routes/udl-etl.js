@@ -38,21 +38,37 @@ const routes = [
   },
   {
     method: "POST",
-    path: "/udl-etl/run",
-    handler: udlEtlApiController.runUdlEtl,
+    path: "/udl-etl/start",
+    handler: udlEtlApiController.startUdlEtlContinuous,
     options: {
       auth: "jwt",
-      description: "Run UDL ETL",
+      description: "Start UDL ETL continuously",
       tags: ["udl-etl", "api"],
+      validate: {
+        payload: Joi.object({
+          interval: Joi.number()
+            .integer()
+            .min(1)
+            .optional()
+            .description("Interval in seconds (default: 300 = 5 minutes)"),
+          retry_interval: Joi.number()
+            .integer()
+            .min(1)
+            .optional()
+            .description(
+              "Retry interval in seconds (default: 120 = 2 minutes)"
+            ),
+        }).optional(),
+      },
     },
   },
   {
     method: "POST",
-    path: "/udl-etl/stop",
-    handler: udlEtlApiController.stopUdlEtl,
+    path: "/udl-etl/stop-continuous",
+    handler: udlEtlApiController.stopUdlEtlContinuous,
     options: {
       auth: "jwt",
-      description: "Stop UDL ETL",
+      description: "Stop UDL ETL continuously",
       tags: ["udl-etl", "api"],
     },
   },

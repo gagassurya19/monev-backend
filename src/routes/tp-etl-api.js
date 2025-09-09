@@ -204,6 +204,52 @@ const routes = [
       },
     },
   },
+  {
+    method: "GET",
+    path: "/status",
+    handler: tpEtlApiController.getTpEtlStatus,
+    options: {
+      auth: "jwt",
+      description: "Get TP ETL status",
+      tags: ["tp-etl", "api"],
+    },
+  },
+  {
+    method: "POST",
+    path: "/start",
+    handler: tpEtlApiController.startTpEtlContinuous,
+    options: {
+      auth: "jwt",
+      description: "Start TP ETL continuously",
+      tags: ["tp-etl", "api"],
+      validate: {
+        payload: Joi.object({
+          interval: Joi.number()
+            .integer()
+            .min(1)
+            .optional()
+            .description("Interval in seconds (default: 300 = 5 minutes)"),
+          retry_interval: Joi.number()
+            .integer()
+            .min(1)
+            .optional()
+            .description(
+              "Retry interval in seconds (default: 120 = 2 minutes)"
+            ),
+        }).optional(),
+      },
+    },
+  },
+  {
+    method: "POST",
+    path: "/stop-continuous",
+    handler: tpEtlApiController.stopTpEtlContinuous,
+    options: {
+      auth: "jwt",
+      description: "Stop TP ETL continuously",
+      tags: ["tp-etl", "api"],
+    },
+  },
 ];
 
 module.exports = routes;

@@ -1,6 +1,7 @@
 const TpEtlSummaryModel = require("../models/TpEtlSummaryModel");
 const TpEtlDetailModel = require("../models/TpEtlDetailModel");
 const TpEtlLogModel = require("../models/TpEtlLogModel");
+const cronService = require("../services/cronService");
 const database = require("../database/connection");
 const logger = require("../utils/logger");
 const ResponseService = require("../services/responseService");
@@ -232,6 +233,74 @@ const tpEtlApiController = {
       logger.error("Error getting TP ETL Logs:", error);
       return h
         .response(ResponseService.internalError("Failed to get TP ETL Logs"))
+        .code(500);
+    }
+  },
+
+  // Get TP ETL Status
+  getTpEtlStatus: async (request, h) => {
+    try {
+      const status = cronService.getTPETLStatus();
+      return h
+        .response(
+          ResponseService.success(
+            status,
+            "TP ETL status retrieved successfully"
+          )
+        )
+        .code(200);
+    } catch (error) {
+      logger.error("Error getting TP ETL status:", error);
+      return h
+        .response(ResponseService.internalError("Failed to get TP ETL status"))
+        .code(500);
+    }
+  },
+
+  // Start TP ETL continuously
+  startTpEtlContinuous: async (request, h) => {
+    try {
+      // Get parameters from payload only
+      const payloadParams = request.payload || {};
+      const interval = payloadParams.interval;
+      const retry_interval = payloadParams.retry_interval;
+
+      // Convert to numbers if provided (in seconds)
+      const intervalSeconds = interval ? parseInt(interval) : null;
+      const retryIntervalSeconds = retry_interval
+        ? parseInt(retry_interval)
+        : null;
+
+      const result = cronService.startTpEtlContinuous(
+        intervalSeconds,
+        retryIntervalSeconds
+      );
+      return h
+        .response(ResponseService.success(result, result.message))
+        .code(200);
+    } catch (error) {
+      logger.error("Error starting TP ETL continuously:", error);
+      return h
+        .response(
+          ResponseService.internalError("Failed to start TP ETL continuously")
+        )
+        .code(500);
+    }
+  },
+
+  // Stop TP ETL continuously
+  stopTpEtlContinuous: async (request, h) => {
+    try {
+      const result = cronService.stopTpEtlContinuous();
+      return h
+        .response(ResponseService.success(result, result.message))
+        .code(200);
+    } catch (error) {
+      logger.error("Error stopping TP ETL continuously:", error);
+      return h
+        .response(
+          ResponseService.internalError("Failed to stop TP ETL continuously")
+        )
         .code(500);
     }
   },

@@ -102,6 +102,52 @@ const routes = [
       },
     },
   },
+  {
+    method: "GET",
+    path: "/status",
+    handler: spEtlApiController.getSpEtlStatus,
+    options: {
+      auth: "jwt",
+      description: "Get SP ETL status",
+      tags: ["sp-etl", "api"],
+    },
+  },
+  {
+    method: "POST",
+    path: "/start",
+    handler: spEtlApiController.startSpEtlContinuous,
+    options: {
+      auth: "jwt",
+      description: "Start SP ETL continuously",
+      tags: ["sp-etl", "api"],
+      validate: {
+        payload: Joi.object({
+          interval: Joi.number()
+            .integer()
+            .min(1)
+            .optional()
+            .description("Interval in seconds (default: 300 = 5 minutes)"),
+          retry_interval: Joi.number()
+            .integer()
+            .min(1)
+            .optional()
+            .description(
+              "Retry interval in seconds (default: 120 = 2 minutes)"
+            ),
+        }).optional(),
+      },
+    },
+  },
+  {
+    method: "POST",
+    path: "/stop-continuous",
+    handler: spEtlApiController.stopSpEtlContinuous,
+    options: {
+      auth: "jwt",
+      description: "Stop SP ETL continuously",
+      tags: ["sp-etl", "api"],
+    },
+  },
 ];
 
 module.exports = routes;
