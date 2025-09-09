@@ -240,6 +240,49 @@ class UdlEtlLogModel {
       throw new Error(`Error getting UDL ETL log by ID: ${error.message}`);
     }
   }
+
+  static async getStatus() {
+    try {
+      // Get the latest log entry
+      const result = await database.query(
+        `SELECT * FROM monev_udl_etl_logs ORDER BY id DESC LIMIT 1`
+      );
+
+      if (result.length === 0) {
+        return {
+          isRunning: false,
+          status: "no_logs",
+          message: "No UDL ETL logs found",
+          lastLog: null,
+        };
+      }
+
+      const latestLog = result[0];
+      const isRunning =
+        latestLog.status === "in_progress" && !latestLog.end_date;
+
+      return {
+        isRunning: isRunning,
+        status: latestLog.status,
+        message: isRunning
+          ? "UDL ETL is currently running"
+          : "UDL ETL is not running",
+        lastLog: {
+          id: latestLog.id,
+          type_run: latestLog.type_run,
+          start_date: latestLog.start_date,
+          end_date: latestLog.end_date,
+          duration: latestLog.duration,
+          status: latestLog.status,
+          total_records: latestLog.total_records,
+          offset: latestLog.offset,
+          created_at: latestLog.created_at,
+        },
+      };
+    } catch (error) {
+      throw new Error(`Error getting UDL ETL status: ${error.message}`);
+    }
+  }
 }
 
 module.exports = UdlEtlLogModel;

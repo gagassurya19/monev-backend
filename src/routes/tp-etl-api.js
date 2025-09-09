@@ -180,6 +180,30 @@ const routes = [
       },
     },
   },
+  {
+    method: "GET",
+    path: "/logs",
+    handler: tpEtlApiController.getTpEtlLogs,
+    options: {
+      auth: "jwt",
+      description: "Get TP ETL Logs with pagination and filters",
+      tags: ["tp-etl", "api"],
+      validate: {
+        query: Joi.object({
+          page: Joi.number().default(1),
+          limit: Joi.number().default(10),
+          sort_by: Joi.string().default("created_at"),
+          sort_order: Joi.string().valid("asc", "desc").default("desc"),
+          filters: Joi.object({
+            type_run: Joi.string().default(""),
+            status: Joi.string().default(""),
+            start_date: Joi.string().default(""),
+            end_date: Joi.string().default(""),
+          }),
+        }),
+      },
+    },
+  },
 ];
 
 module.exports = routes;

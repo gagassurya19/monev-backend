@@ -2,6 +2,7 @@ const Boom = require("@hapi/boom");
 const SpEtlDetailModel = require("../models/SpEtlDetailModel");
 const SpEtlSummaryModel = require("../models/SpEtlSummaryModel");
 const ResponseService = require("../services/responseService");
+const SpEtlLogModel = require("../models/SpEtlLogModel");
 const logger = require("../utils/logger");
 
 const spEtlApiController = {
@@ -157,6 +158,34 @@ const spEtlApiController = {
             "Failed to retrieve module type summary"
           )
         )
+        .code(500);
+    }
+  },
+
+  getSpEtlLogs: async (request, h) => {
+    try {
+      const { page, limit, sort_by, sort_order } = request.query;
+      const { filters } = request.query;
+      const result = await SpEtlLogModel.getLogsWithPagination(
+        page,
+        limit,
+        sort_by,
+        sort_order,
+        filters
+      );
+      return h
+        .response(
+          ResponseService.pagination(
+            result.data,
+            result.pagination,
+            "SP ETL logs retrieved successfully"
+          )
+        )
+        .code(200);
+    } catch (error) {
+      logger.error("Error getting SP ETL Logs:", error);
+      return h
+        .response(ResponseService.internalError("Failed to get SP ETL Logs"))
         .code(500);
     }
   },

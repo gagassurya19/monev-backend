@@ -119,41 +119,6 @@ const tpEtlApiController = {
     }
   },
 
-  // Get TP ETL Latest Log
-  getLatestLog: async (request, h) => {
-    try {
-      logger.info("Getting TP ETL Latest Log");
-
-      const query = `
-				SELECT * FROM monev_tp_etl_logs 
-				ORDER BY id DESC 
-				LIMIT 1
-			`;
-
-      const result = await database.query(query);
-
-      if (result && result.length > 0) {
-        return h
-          .response(
-            ResponseService.success(
-              result[0],
-              "TP ETL Latest Log retrieved successfully"
-            )
-          )
-          .code(200);
-      } else {
-        return h.response(ResponseService.notFound("No logs found")).code(404);
-      }
-    } catch (error) {
-      logger.error("Error getting TP ETL Latest Log:", error);
-      return h
-        .response(
-          ResponseService.internalError("Failed to get TP ETL Latest Log")
-        )
-        .code(500);
-    }
-  },
-
   // Get User Courses
   getUserCourses: async (request, h) => {
     try {
@@ -180,45 +145,6 @@ const tpEtlApiController = {
       return h
         .response(
           ResponseService.internalError("Failed to get TP ETL User Courses")
-        )
-        .code(500);
-    }
-  },
-
-  // Get TP ETL Summary by User ID
-  getSummaryByUserId: async (request, h) => {
-    try {
-      const { userId } = request.params;
-
-      logger.info("Getting TP ETL Summary by User ID:", { userId });
-
-      const result = await TpEtlSummaryModel.getByUserId(userId);
-
-      if (result) {
-        return h
-          .response(
-            ResponseService.success(
-              result,
-              "TP ETL Summary by User ID retrieved successfully"
-            )
-          )
-          .code(200);
-      } else {
-        return h
-          .response(
-            ResponseService.notFound(
-              "TP ETL Summary not found for this user ID"
-            )
-          )
-          .code(404);
-      }
-    } catch (error) {
-      logger.error("Error getting TP ETL Summary by User ID:", error);
-      return h
-        .response(
-          ResponseService.internalError(
-            "Failed to get TP ETL Summary by User ID"
-          )
         )
         .code(500);
     }
@@ -268,6 +194,44 @@ const tpEtlApiController = {
             "Failed to get TP ETL Detail by User ID and Course ID"
           )
         )
+        .code(500);
+    }
+  },
+
+  getTpEtlLogs: async (request, h) => {
+    try {
+      const { page, limit, sort_by, sort_order } = request.query;
+      const { filters } = request.query;
+
+      logger.info(`Getting TP ETL Logs with params:`, {
+        page,
+        limit,
+        sort_by,
+        sort_order,
+        filters,
+      });
+
+      const result = await TpEtlLogModel.getLogsWithPagination(
+        page,
+        limit,
+        sort_by,
+        sort_order,
+        filters
+      );
+
+      return h
+        .response(
+          ResponseService.pagination(
+            result.data,
+            result.pagination,
+            "TP ETL logs retrieved successfully"
+          )
+        )
+        .code(200);
+    } catch (error) {
+      logger.error("Error getting TP ETL Logs:", error);
+      return h
+        .response(ResponseService.internalError("Failed to get TP ETL Logs"))
         .code(500);
     }
   },

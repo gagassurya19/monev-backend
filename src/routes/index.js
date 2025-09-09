@@ -11,6 +11,7 @@ const spEtlRoutes = require("./sp-etl-router");
 const tpEtlApiRoutes = require("./tp-etl-api");
 const heatmapRoutes = require("./heatmap");
 const finalGradeRoutes = require("./final-grade");
+const udlEtlRoutes = require("./udl-etl");
 
 // Combine all routes
 const routes = [
@@ -74,6 +75,11 @@ const routes = [
   })),
 
   ...finalGradeRoutes.map((route) => ({
+    ...route,
+    path: `${config.api.prefix}${route.path}`,
+  })),
+
+  ...udlEtlRoutes.map((route) => ({
     ...route,
     path: `${config.api.prefix}${route.path}`,
   })),
