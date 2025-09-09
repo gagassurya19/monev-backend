@@ -1,58 +1,88 @@
-const config = require('../../config')
-const healthRoutes = require('./health')
-const authRoutes = require('./auth')
-const coursePerformanceRoutes = require('./course-performance')
-const sasCategorySubjectRoutes = require('./sas-category-subject')
-const sasSummaryRoutes = require('./sas-summary')
-const sasEtlRoutes = require('./etl-student-activity-summary')
-const etlCoursePerformanceRoutes = require('./etl-course-performance')
-const celoeApiRoutes = require('./celoe-api')
+const config = require("../../config");
+const healthRoutes = require("./health");
+const authRoutes = require("./auth");
+const coursePerformanceRoutes = require("./course-performance");
+const sasCategorySubjectRoutes = require("./sas-category-subject");
+const sasSummaryRoutes = require("./sas-summary");
+const sasEtlRoutes = require("./etl-student-activity-summary");
+const etlCoursePerformanceRoutes = require("./etl-course-performance");
+const celoeApiRoutes = require("./celoe-api");
+const spEtlRoutes = require("./sp-etl-router");
+const tpEtlApiRoutes = require("./tp-etl-api");
+const heatmapRoutes = require("./heatmap");
+const finalGradeRoutes = require("./final-grade");
+const udlEtlRoutes = require("./udl-etl");
 
 // Combine all routes
 const routes = [
   // Health check routes (no prefix needed)
-  ...healthRoutes.map(route => {
+  ...healthRoutes.map((route) => {
     return {
       ...route,
-      path: `${config.api.prefix}/health${route.path}`
-    }
+      path: `${config.api.prefix}/health${route.path}`,
+    };
   }),
 
   // API routes with prefix
-  ...authRoutes.map(route => ({
+  ...authRoutes.map((route) => ({
     ...route,
-    path: `${config.api.prefix}/auth${route.path}`
+    path: `${config.api.prefix}/auth${route.path}`,
   })),
 
-  ...coursePerformanceRoutes.map(route => ({
+  ...coursePerformanceRoutes.map((route) => ({
     ...route,
-    path: `${config.api.prefix}/cp${route.path}`
+    path: `${config.api.prefix}/cp${route.path}`,
   })),
 
-  ...sasCategorySubjectRoutes.map(route => ({
+  ...sasCategorySubjectRoutes.map((route) => ({
     ...route,
-    path: `${config.api.prefix}/sas-category-subject${route.path}`
+    path: `${config.api.prefix}/sas-category-subject${route.path}`,
   })),
 
-  ...sasEtlRoutes.map(route => ({
+  ...sasEtlRoutes.map((route) => ({
     ...route,
-    path: `${config.api.prefix}/etl-sas${route.path}`
+    path: `${config.api.prefix}/etl-sas${route.path}`,
   })),
 
-  ...celoeApiRoutes.map(route => ({
+  ...celoeApiRoutes.map((route) => ({
     ...route,
-    path: `${config.api.prefix}${config.celoeapi.prefix}${route.path}`
+    path: `${config.api.prefix}${config.celoeapi.prefix}${route.path}`,
   })),
 
-  ...etlCoursePerformanceRoutes.map(route => ({
+  ...etlCoursePerformanceRoutes.map((route) => ({
     ...route,
-    path: `${config.api.prefix}/etl-cp${route.path}`
+    path: `${config.api.prefix}/etl-cp${route.path}`,
   })),
 
-  ...sasSummaryRoutes.map(route => ({
+  ...sasSummaryRoutes.map((route) => ({
     ...route,
-    path: `${config.api.prefix}/sas/summary${route.path}`
-  }))
-]
+    path: `${config.api.prefix}/sas/summary${route.path}`,
+  })),
 
-module.exports = routes
+  ...spEtlRoutes.map((route) => ({
+    ...route,
+    path: `${config.api.prefix}/sp-etl${route.path}`,
+  })),
+
+  ...tpEtlApiRoutes.map((route) => ({
+    ...route,
+    path: `${config.api.prefix}/tp-etl${route.path}`,
+  })),
+
+  ...heatmapRoutes.map((route) => ({
+    ...route,
+    path: `${config.api.prefix}${route.path}`,
+  })),
+
+  ...finalGradeRoutes.map((route) => ({
+    ...route,
+    path: `${config.api.prefix}${route.path}`,
+  })),
+
+  ...udlEtlRoutes.map((route) => ({
+    ...route,
+    path: `${config.api.prefix}${route.path}`,
+  })),
+];
+
+module.exports = routes;

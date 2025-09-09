@@ -75,6 +75,10 @@ echo "📁 File migration yang akan digunakan: $MIGRATION_FILE"
 # Periksa apakah file migration ada
 if [ ! -f "$MIGRATION_FILE" ]; then
     echo "❌ Error: File migration tidak ditemukan: $MIGRATION_FILE"
+    echo ""
+    echo "Langkah yang diperlukan:"
+    echo "1. Pastikan file migration ada di direktori scripts/"
+    echo "2. Atau jalankan: npm run export:tables"
     exit 1
 fi
 

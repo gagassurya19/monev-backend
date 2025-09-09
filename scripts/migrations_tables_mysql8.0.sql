@@ -18,9 +18,7 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 
-
-
-CREATE TABLE `monev_cp_activity_summary` (
+CREATE TABLE IF NOT EXISTS `monev_cp_activity_summary` (
   `id` int NOT NULL AUTO_INCREMENT,
   `course_id` bigint NOT NULL,
   `section` int DEFAULT NULL,
@@ -38,7 +36,7 @@ CREATE TABLE `monev_cp_activity_summary` (
   KEY `idx_activity_type` (`activity_type`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2410 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_cp_course_summary` (
+CREATE TABLE IF NOT EXISTS `monev_cp_course_summary` (
   `id` int NOT NULL AUTO_INCREMENT,
   `course_id` bigint NOT NULL,
   `course_name` varchar(255) NOT NULL,
@@ -52,7 +50,7 @@ CREATE TABLE `monev_cp_course_summary` (
   UNIQUE KEY `course_id` (`course_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5447 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_cp_fetch_logs` (
+CREATE TABLE IF NOT EXISTS `monev_cp_fetch_logs` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `offset` int NOT NULL DEFAULT '0',
   `numrow` int NOT NULL DEFAULT '0',
@@ -66,7 +64,7 @@ CREATE TABLE `monev_cp_fetch_logs` (
   KEY `idx_end_date` (`end_date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_cp_student_assignment_detail` (
+CREATE TABLE IF NOT EXISTS `monev_cp_student_assignment_detail` (
   `id` int NOT NULL AUTO_INCREMENT,
   `assignment_id` bigint NOT NULL,
   `user_id` bigint NOT NULL,
@@ -82,7 +80,7 @@ CREATE TABLE `monev_cp_student_assignment_detail` (
   KEY `idx_nim` (`nim`)
 ) ENGINE=InnoDB AUTO_INCREMENT=471 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_cp_student_profile` (
+CREATE TABLE IF NOT EXISTS `monev_cp_student_profile` (
   `id` int NOT NULL AUTO_INCREMENT,
   `user_id` bigint NOT NULL,
   `idnumber` varchar(255) DEFAULT NULL,
@@ -96,7 +94,7 @@ CREATE TABLE `monev_cp_student_profile` (
   KEY `idx_idnumber` (`idnumber`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2297 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_cp_student_quiz_detail` (
+CREATE TABLE IF NOT EXISTS `monev_cp_student_quiz_detail` (
   `id` int NOT NULL AUTO_INCREMENT,
   `quiz_id` bigint NOT NULL,
   `user_id` bigint NOT NULL,
@@ -115,7 +113,7 @@ CREATE TABLE `monev_cp_student_quiz_detail` (
   KEY `idx_nim` (`nim`)
 ) ENGINE=InnoDB AUTO_INCREMENT=389 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_cp_student_resource_access` (
+CREATE TABLE IF NOT EXISTS `monev_cp_student_resource_access` (
   `id` int NOT NULL AUTO_INCREMENT,
   `resource_id` bigint NOT NULL,
   `user_id` bigint NOT NULL,
@@ -130,7 +128,7 @@ CREATE TABLE `monev_cp_student_resource_access` (
   KEY `idx_waktu_akses` (`waktu_akses`)
 ) ENGINE=InnoDB AUTO_INCREMENT=693 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_activity_counts_etl` (
+CREATE TABLE IF NOT EXISTS `monev_sas_activity_counts_etl` (
   `id` int NOT NULL AUTO_INCREMENT,
   `courseid` int NOT NULL,
   `file_views` int DEFAULT '0',
@@ -148,7 +146,7 @@ CREATE TABLE `monev_sas_activity_counts_etl` (
   KEY `idx_extraction_date` (`extraction_date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=329 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_categories` (
+CREATE TABLE IF NOT EXISTS `monev_sas_categories` (
   `category_id` int NOT NULL,
   `category_name` varchar(255) NOT NULL,
   `category_site` varchar(50) DEFAULT NULL,
@@ -159,7 +157,7 @@ CREATE TABLE `monev_sas_categories` (
   KEY `idx_category_parent` (`category_parent_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_courses` (
+CREATE TABLE IF NOT EXISTS `monev_sas_courses` (
   `course_id` int NOT NULL,
   `subject_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `course_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -175,7 +173,7 @@ CREATE TABLE `monev_sas_courses` (
   KEY `idx_faculty_id` (`faculty_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_logs` (
+CREATE TABLE IF NOT EXISTS `monev_sas_logs` (
   `id` int NOT NULL AUTO_INCREMENT,
   `type_run` enum('fetch_category_subject','fetch_course_performance','fetch_student_activity_summary') NOT NULL,
   `start_date` datetime DEFAULT NULL,
@@ -192,7 +190,7 @@ CREATE TABLE `monev_sas_logs` (
   KEY `idx_type_status` (`type_run`,`status`)
 ) ENGINE=InnoDB AUTO_INCREMENT=272 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_realtime_logs` (
+CREATE TABLE IF NOT EXISTS `monev_sas_realtime_logs` (
   `id` int NOT NULL AUTO_INCREMENT,
   `log_id` int NOT NULL,
   `level` enum('info','warning','error','debug','progress') NOT NULL,
@@ -207,7 +205,7 @@ CREATE TABLE `monev_sas_realtime_logs` (
   CONSTRAINT `monev_sas_realtime_logs_ibfk_1` FOREIGN KEY (`log_id`) REFERENCES `monev_sas_logs` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=18116 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_subjects` (
+CREATE TABLE IF NOT EXISTS `monev_sas_subjects` (
   `subject_id` int NOT NULL,
   `subject_code` varchar(20) NOT NULL,
   `subject_name` varchar(255) NOT NULL,
@@ -219,7 +217,7 @@ CREATE TABLE `monev_sas_subjects` (
   KEY `idx_category_id` (`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_user_activity_etl` (
+CREATE TABLE IF NOT EXISTS `monev_sas_user_activity_etl` (
   `id` int NOT NULL AUTO_INCREMENT,
   `course_id` int NOT NULL,
   `num_teachers` int DEFAULT '0',
@@ -243,7 +241,7 @@ CREATE TABLE `monev_sas_user_activity_etl` (
   CONSTRAINT `fk_monev_sas_user_activity_course` FOREIGN KEY (`course_id`) REFERENCES `monev_sas_courses` (`course_id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=507 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_sas_user_counts_etl` (
+CREATE TABLE IF NOT EXISTS `monev_sas_user_counts_etl` (
   `id` int NOT NULL AUTO_INCREMENT,
   `courseid` int NOT NULL,
   `num_students` int DEFAULT '0',
@@ -256,7 +254,7 @@ CREATE TABLE `monev_sas_user_counts_etl` (
   KEY `idx_extraction_date` (`extraction_date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=351 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `monev_users` (
+CREATE TABLE IF NOT EXISTS `monev_users` (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -276,12 +274,252 @@ CREATE TABLE `monev_users` (
   UNIQUE KEY `sub` (`sub`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Dumping structure for table celoeapi.sp_etl_detail
+DROP TABLE IF EXISTS `monev_sp_etl_detail`;
+CREATE TABLE IF NOT EXISTS `monev_sp_etl_detail` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `response_id` bigint(20) NOT NULL,
+  `user_id` bigint(20) NOT NULL COMMENT 'Moodle user ID',
+  `course_id` bigint(20) NOT NULL COMMENT 'Moodle course ID',
+  `course_name` varchar(254) NOT NULL COMMENT 'Course full name',
+  `module_type` varchar(50) NOT NULL COMMENT 'Module type (mod_quiz, mod_assign, mod_forum)',
+  `module_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'Name of the module (quiz name, forum name, assignment name)',
+  `object_id` bigint(20) DEFAULT NULL COMMENT 'Object ID (forum_id, assign_id, quiz_id)',
+  `grade` decimal(10,2) DEFAULT NULL COMMENT 'Grade for this module (nullable)',
+  `timecreated` bigint(20) DEFAULT NULL COMMENT 'Unix timestamp from Moodle log',
+  `log_id` bigint(20) DEFAULT NULL COMMENT 'Moodle log entry ID',
+  `action_type` varchar(50) DEFAULT NULL COMMENT 'Action type from Moodle log (viewed, created, updated, etc.)',
+  `extraction_date` date NOT NULL COMMENT 'Date for which data was extracted',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_log_id` (`log_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_course_id` (`course_id`),
+  KEY `idx_module_type` (`module_type`),
+  KEY `idx_object_id` (`object_id`),
+  KEY `idx_extraction_date` (`extraction_date`),
+  KEY `idx_user_course_module` (`user_id`,`course_id`,`module_type`),
+  KEY `idx_response_id` (`response_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=625 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Data exporting was unselected.
 
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40014 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+-- Dumping structure for table celoeapi.sp_etl_summary
+DROP TABLE IF EXISTS `monev_sp_etl_summary`;
+CREATE TABLE IF NOT EXISTS `monev_sp_etl_summary` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `response_id` bigint(20) NOT NULL,
+  `user_id` bigint(20) NOT NULL COMMENT 'Moodle user ID',
+  `username` varchar(100) NOT NULL COMMENT 'User username',
+  `firstname` varchar(100) NOT NULL COMMENT 'User first name',
+  `lastname` varchar(100) NOT NULL COMMENT 'User last name',
+  `total_course` int(11) NOT NULL DEFAULT 0 COMMENT 'Total number of courses enrolled',
+  `total_login` int(11) NOT NULL DEFAULT 0 COMMENT 'Total number of login days',
+  `total_activities` int(11) NOT NULL DEFAULT 0 COMMENT 'Total number of activities performed',
+  `extraction_date` date NOT NULL COMMENT 'Date for which data was extracted',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_id` (`user_id`),
+  KEY `idx_username` (`username`),
+  KEY `idx_extraction_date` (`extraction_date`),
+  KEY `idx_total_course` (`total_course`),
+  KEY `idx_total_activities` (`total_activities`),
+  KEY `idx_user_date_activities` (`user_id`,`extraction_date`,`total_activities`),
+  KEY `idx_response_id` (`response_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Table for storing SP ETL logs
+DROP TABLE IF EXISTS `monev_sp_etl_logs`;
+CREATE TABLE IF NOT EXISTS `monev_sp_etl_logs` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `type_run` enum('execute_run_sp_etl','execute_sp_etl_summary','execute_sp_etl_detail') NOT NULL,
+  `start_date` datetime DEFAULT NULL,
+  `end_date` datetime DEFAULT NULL,
+  `duration` varchar(20) DEFAULT NULL,
+  `status` enum('success','failed','in_progress') DEFAULT 'in_progress',
+  `total_records` int DEFAULT NULL,
+  `offset` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_type_run` (`type_run`),
+  KEY `idx_status` (`status`),
+  KEY `idx_start_date` (`start_date`),
+  KEY `idx_end_date` (`end_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `monev_tp_etl_summary` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) NOT NULL COMMENT 'Moodle user ID',
+  `username` varchar(100) NOT NULL COMMENT 'User username',
+  `firstname` varchar(100) NOT NULL COMMENT 'User first name',
+  `lastname` varchar(100) NOT NULL COMMENT 'User last name',
+  `email` varchar(100) NOT NULL COMMENT 'User email address',
+  `total_courses_taught` int(11) NOT NULL DEFAULT 0 COMMENT 'Total number of courses taught',
+  `total_activities` int(11) NOT NULL DEFAULT 0 COMMENT 'Total number of activities performed',
+  `forum_replies` int(11) NOT NULL DEFAULT 0 COMMENT 'Number of forum replies to students',
+  `assignment_feedback_count` int(11) NOT NULL DEFAULT 0 COMMENT 'Number of assignment feedback given',
+  `quiz_feedback_count` int(11) NOT NULL DEFAULT 0 COMMENT 'Number of quiz feedback given',
+  `grading_count` int(11) NOT NULL DEFAULT 0 COMMENT 'Number of grading activities performed',
+  `mod_assign_logs` int(11) NOT NULL DEFAULT 0 COMMENT 'Number of assignment module logs',
+  `mod_forum_logs` int(11) NOT NULL DEFAULT 0 COMMENT 'Number of forum module logs',
+  `mod_quiz_logs` int(11) NOT NULL DEFAULT 0 COMMENT 'Number of quiz module logs',
+  `total_login` int(11) NOT NULL DEFAULT 0 COMMENT 'Total number of login days',
+  `total_student_interactions` int(11) NOT NULL DEFAULT 0 COMMENT 'Total student interactions (forum + feedback + grading)',
+  `extraction_date` date NOT NULL COMMENT 'Date for which data was extracted',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_id` (`user_id`),
+  KEY `idx_username` (`username`),
+  KEY `idx_email` (`email`),
+  KEY `idx_extraction_date` (`extraction_date`),
+  KEY `idx_total_courses_taught` (`total_courses_taught`),
+  KEY `idx_total_activities` (`total_activities`),
+  KEY `idx_total_student_interactions` (`total_student_interactions`),
+  KEY `idx_forum_replies` (`forum_replies`),
+  KEY `idx_assignment_feedback` (`assignment_feedback_count`),
+  KEY `idx_quiz_feedback` (`quiz_feedback_count`),
+  KEY `idx_grading_count` (`grading_count`),
+  KEY `idx_user_date_interactions` (`user_id`,`extraction_date`,`total_student_interactions`),
+  KEY `idx_user_date_courses` (`user_id`,`extraction_date`,`total_courses_taught`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `monev_tp_etl_logs` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `process_type` varchar(100) NOT NULL COMMENT 'ETL process type',
+  `status` enum('running','completed','failed') NOT NULL DEFAULT 'running' COMMENT 'Process status',
+  `message` text DEFAULT NULL COMMENT 'Process message or error details',
+  `concurrency` int(11) NOT NULL DEFAULT 1 COMMENT 'Concurrency level used',
+  `start_date` timestamp NULL DEFAULT current_timestamp() COMMENT 'Process start time',
+  `end_date` timestamp NULL DEFAULT NULL COMMENT 'Process end time',
+  `duration_seconds` int(11) DEFAULT NULL COMMENT 'Process duration in seconds',
+  `total_records` int(11) DEFAULT 0 COMMENT 'Total records processed',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_process_type` (`process_type`),
+  KEY `idx_status` (`status`),
+  KEY `idx_start_date` (`start_date`),
+  KEY `idx_concurrency` (`concurrency`),
+  KEY `idx_total_records` (`total_records`),
+  KEY `idx_process_type_status` (`process_type`,`status`),
+  KEY `idx_start_date_process` (`start_date`,`process_type`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `monev_tp_etl_detail` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) NOT NULL COMMENT 'Moodle user ID',
+  `username` varchar(100) NOT NULL COMMENT 'Username',
+  `firstname` varchar(100) NOT NULL COMMENT 'First name',
+  `lastname` varchar(100) NOT NULL COMMENT 'Last name',
+  `email` varchar(100) NOT NULL COMMENT 'Email address',
+  `course_id` bigint(20) NOT NULL COMMENT 'Moodle course ID',
+  `course_name` varchar(255) NOT NULL COMMENT 'Course full name',
+  `course_shortname` varchar(100) NOT NULL COMMENT 'Course short name',
+  `activity_date` date NOT NULL COMMENT 'Date of activity',
+  `component` varchar(100) DEFAULT NULL COMMENT 'Component (e.g., mod_assign, mod_forum)',
+  `action` varchar(100) DEFAULT NULL COMMENT 'Action performed (e.g., graded, loggedin)',
+  `target` varchar(100) DEFAULT NULL COMMENT 'Target of action',
+  `objectid` bigint(20) DEFAULT NULL COMMENT 'Object ID',
+  `log_id` bigint(20) NOT NULL COMMENT 'Moodle log ID (for duplicate prevention)',
+  `activity_timestamp` bigint(20) DEFAULT NULL COMMENT 'Activity timestamp (Unix)',
+  `extraction_date` date NOT NULL COMMENT 'Date when data was extracted',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_log_id` (`log_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_course_id` (`course_id`),
+  KEY `idx_log_id` (`log_id`),
+  KEY `idx_extraction_date` (`extraction_date`),
+  KEY `idx_activity_date` (`activity_date`),
+  KEY `idx_component` (`component`),
+  KEY `idx_action` (`action`),
+  KEY `idx_username` (`username`),
+  KEY `idx_activity_timestamp` (`activity_timestamp`),
+  KEY `idx_user_date` (`user_id`,`extraction_date`),
+  KEY `idx_course_date` (`course_id`,`extraction_date`)
+) ENGINE=InnoDB AUTO_INCREMENT=3389 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `monev_udl_etl` (
+    `id` bigint NOT NULL AUTO_INCREMENT,
+    `user_id` bigint NOT NULL COMMENT 'ID user dari Moodle',
+    `username` varchar(100) NOT NULL COMMENT 'Username Moodle',
+    `firstname` varchar(100) NOT NULL COMMENT 'Nama depan',
+    `lastname` varchar(100) NOT NULL COMMENT 'Nama belakang',
+    `email` varchar(255) DEFAULT NULL COMMENT 'Email user',
+    
+    -- Login Information
+    `lastaccess` bigint DEFAULT '0' COMMENT 'Timestamp akses terakhir (Unix)',
+    `formatted_lastaccess` datetime DEFAULT NULL COMMENT 'Format YYYY-MM-DD HH:II:SS dari lastaccess',
+    `lastlogin` bigint DEFAULT '0' COMMENT 'Timestamp login terakhir (Unix)',
+    `formatted_lastlogin` datetime DEFAULT NULL COMMENT 'Format YYYY-MM-DD HH:II:SS dari lastlogin',
+    `currentlogin` bigint DEFAULT '0' COMMENT 'Timestamp login saat ini (Unix)',
+    `formatted_currentlogin` datetime DEFAULT NULL COMMENT 'Format YYYY-MM-DD HH:II:SS dari currentlogin',
+    `lastip` varchar(45) DEFAULT NULL COMMENT 'IP address terakhir',
+    `auth` varchar(20) DEFAULT 'manual' COMMENT 'Authentication method',
+    `firstaccess` bigint DEFAULT '0' COMMENT 'Timestamp akses pertama (Unix)',
+    `formatted_firstaccess` datetime DEFAULT NULL COMMENT 'Format YYYY-MM-DD HH:II:SS dari firstaccess',
+    
+    -- Primary Role Information
+    `role_id` bigint DEFAULT NULL COMMENT 'ID role utama',
+    `role_name` varchar(255) DEFAULT NULL COMMENT 'Nama role utama',
+    `role_shortname` varchar(255) DEFAULT NULL COMMENT 'Shortname role utama',
+    `archetype` varchar(255) DEFAULT NULL COMMENT 'Archetype role utama',
+    `course_id` bigint DEFAULT NULL COMMENT 'ID course utama',
+    
+    -- All Roles and Courses Information
+    `all_role_ids` text DEFAULT NULL COMMENT 'Array semua role IDs (JSON)',
+    `all_role_names` text DEFAULT NULL COMMENT 'Array semua role names (JSON)',
+    `all_role_shortnames` text DEFAULT NULL COMMENT 'Array semua role shortnames (JSON)',
+    `all_archetypes` text DEFAULT NULL COMMENT 'Array semua archetypes (JSON)',
+    `all_course_ids` text DEFAULT NULL COMMENT 'Array semua course IDs (JSON)',
+    `total_courses` int DEFAULT '0' COMMENT 'Jumlah total course user',
+    
+    -- Activity Tracking
+    `activity_hour` int DEFAULT NULL COMMENT 'Jam aktivitas (0-23) dalam timezone Asia/Jakarta',
+    `activity_date` date DEFAULT NULL COMMENT 'Tanggal aktivitas dalam format YYYY-MM-DD (Asia/Jakarta)',
+    `login_count` int DEFAULT '1' COMMENT 'Jumlah login dalam jam yang sama',
+    
+    -- Metadata
+    `extraction_date` date NOT NULL COMMENT 'Tanggal ekstraksi data',
+    `created_at` datetime DEFAULT NULL COMMENT 'Waktu pembuatan record',
+    `updated_at` datetime DEFAULT NULL COMMENT 'Waktu update record',
+    
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `idx_unique_user_activity` (`user_id`, `activity_hour`, `activity_date`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_username` (`username`),
+    KEY `idx_email` (`email`),
+    KEY `idx_extraction_date` (`extraction_date`),
+    KEY `idx_activity_hour` (`activity_hour`),
+    KEY `idx_activity_date` (`activity_date`),
+    KEY `idx_role_id` (`role_id`),
+    KEY `idx_role_name` (`role_name`),
+    KEY `idx_course_id` (`course_id`),
+    KEY `idx_lastaccess` (`lastaccess`),
+    KEY `idx_login_count` (`login_count`),
+    KEY `idx_user_activity_hour` (`user_id`, `activity_hour`),
+    KEY `idx_user_activity_date` (`user_id`, `activity_date`),
+    KEY `idx_hour_date_activity` (`activity_hour`, `activity_date`, `login_count`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `monev_udl_etl_logs` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `type_run` enum('execute_run_udl_etl','excute_export_data') NOT NULL,
+  `start_date` datetime DEFAULT NULL,
+  `end_date` datetime DEFAULT NULL,
+  `duration` varchar(20) DEFAULT NULL,
+  `duration_seconds` int DEFAULT NULL,
+  `status` enum('success','failed','in_progress') DEFAULT 'in_progress',
+  `total_records` int DEFAULT NULL,
+  `offset` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_type_run` (`type_run`),
+  KEY `idx_status` (`status`),
+  KEY `idx_start_date` (`start_date`),
+  KEY `idx_end_date` (`end_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
