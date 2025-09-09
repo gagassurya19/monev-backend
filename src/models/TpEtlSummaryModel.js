@@ -162,8 +162,11 @@ class TpEtlSummaryModel {
       const filterValues = [];
 
       if (filters.kampusId) {
-        filterConditions.push("cat.category_site = ?");
-        filterValues.push(filters.kampusId);
+        // Check both faculty and program category_site for kampus
+        filterConditions.push(
+          "(cat.category_site = ? OR cat_program.category_site = ?)"
+        );
+        filterValues.push(filters.kampusId, filters.kampusId);
       }
       if (filters.fakultasId) {
         filterConditions.push("cat.category_id = ?");
@@ -185,10 +188,16 @@ class TpEtlSummaryModel {
         INNER JOIN monev_sas_courses course ON d.course_id = course.course_id
       `;
 
-      // Add category join only if needed for kampusId or fakultasId
+      // Add category joins for faculty and program
       if (filters.kampusId || filters.fakultasId) {
         joinClause += `
         INNER JOIN monev_sas_categories cat ON course.faculty_id = cat.category_id`;
+      }
+
+      // Always add program category join for kampusId filter
+      if (filters.kampusId) {
+        joinClause += `
+        INNER JOIN monev_sas_categories cat_program ON course.program_id = cat_program.category_id`;
       }
 
       // Combine search and filter conditions
