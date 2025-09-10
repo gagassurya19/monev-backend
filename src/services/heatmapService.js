@@ -73,20 +73,7 @@ const getRawHeatmapData = async (
   `;
 
   try {
-    console.log("=== HEATMAP QUERY DEBUG ===");
-    console.log("Final query:", query);
-    console.log("Query params:", params);
-
     const rows = await database.query(query, params);
-    console.log(
-      "Query result count:",
-      Array.isArray(rows) ? rows.length : rows ? 1 : 0
-    );
-    console.log(
-      "Sample result:",
-      Array.isArray(rows) ? rows.slice(0, 3) : rows
-    );
-
     const result = Array.isArray(rows) ? rows : rows ? [rows] : [];
     return result;
   } catch (error) {
@@ -96,9 +83,7 @@ const getRawHeatmapData = async (
 };
 
 const formatHeatmapData = (rawData) => {
-  console.log("Data mentah diterima:", rawData);
   if (!Array.isArray(rawData)) {
-    console.warn("rawData bukan array, mengembalikan grid kosong");
     return new Array(24).fill(0).map(() => new Array(7).fill(0));
   }
   const heatmapGrid = new Array(24).fill(0).map(() => new Array(7).fill(0));
@@ -108,8 +93,6 @@ const formatHeatmapData = (rawData) => {
     const totalAccess = parseInt(row.total_access, 10) || 0;
     if (dayIndex >= 0 && dayIndex < 7 && hourIndex >= 0 && hourIndex < 24) {
       heatmapGrid[hourIndex][dayIndex] = totalAccess;
-    } else {
-      console.warn("Data tidak valid:", row);
     }
   });
   return heatmapGrid;

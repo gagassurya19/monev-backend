@@ -68,12 +68,6 @@ const udlEtlApiController = {
         ? parseInt(retry_interval)
         : null;
 
-      // Debug logging
-      console.log("UDL ETL Controller - Parsed params:", {
-        intervalSeconds,
-        retryIntervalSeconds,
-      });
-
       const result = cronService.startUdlEtlContinuous(
         intervalSeconds,
         retryIntervalSeconds

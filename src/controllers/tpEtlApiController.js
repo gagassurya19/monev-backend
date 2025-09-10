@@ -125,10 +125,6 @@ const tpEtlApiController = {
     try {
       const { user_id } = request.query;
 
-      logger.info("Getting TP ETL User Courses with params:", {
-        user_id,
-      });
-
       const result = await TpEtlDetailModel.getUserCourses({
         user_id: user_id ? parseInt(user_id) : undefined,
       });
@@ -155,11 +151,6 @@ const tpEtlApiController = {
   getDetailByUserIdCourseId: async (request, h) => {
     try {
       const { userId, courseId } = request.params;
-
-      logger.info("Getting TP ETL Detail by User ID and Course ID:", {
-        userId,
-        courseId,
-      });
 
       const result = await TpEtlDetailModel.getByUserIdCourseId(
         userId,
@@ -203,14 +194,6 @@ const tpEtlApiController = {
     try {
       const { page, limit, sort_by, sort_order } = request.query;
       const { filters } = request.query;
-
-      logger.info(`Getting TP ETL Logs with params:`, {
-        page,
-        limit,
-        sort_by,
-        sort_order,
-        filters,
-      });
 
       const result = await TpEtlLogModel.getLogsWithPagination(
         page,

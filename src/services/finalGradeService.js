@@ -107,9 +107,7 @@ class FinalGradeService {
         `;
     const queryParams = [facultyId, kampusId];
     try {
-      console.log("Fetching prodis with query:", query, "Params:", queryParams);
       const rows = await db.query(query, queryParams);
-      console.log("Prodis response from DB:", rows);
       return { data: Array.isArray(rows) ? rows : [], status: true };
     } catch (error) {
       console.error("Error fetching prodis:", error.message);
@@ -142,14 +140,7 @@ class FinalGradeService {
     }
 
     try {
-      console.log(
-        "Fetching courses with query:",
-        query,
-        "Params:",
-        queryParams
-      );
       const rows = await db.query(query, queryParams);
-      console.log("Courses response:", rows);
       return { data: Array.isArray(rows) ? rows : [], status: true };
     } catch (error) {
       console.error("Error fetching courses:", error.message);
@@ -185,10 +176,6 @@ class FinalGradeService {
     const queryParams = prodiId ? [prodiId, prodiId] : [];
 
     try {
-      console.log("Fetching final grades by prodiId:", prodiId);
-      console.log("Query:", combinedQuery);
-      console.log("Params:", queryParams);
-
       const rows = await db.query(combinedQuery, queryParams);
 
       if (!Array.isArray(rows)) {
@@ -196,10 +183,7 @@ class FinalGradeService {
         return { data: [], status: true };
       }
 
-      console.log("Raw data from DB:", rows);
       const formattedData = this.formatDataForBoxplot(rows);
-      console.log("Formatted data:", formattedData);
-
       return { data: formattedData, status: true };
     } catch (error) {
       console.error("Error in fetchFinalGradesByProdiId:", error);
@@ -251,14 +235,6 @@ class FinalGradeService {
     if (prodiId) queryParams.push(prodiId);
 
     try {
-      console.log("Fetching final grades by filters:", {
-        kampusId,
-        facultyId,
-        prodiId,
-      });
-      console.log("Query:", combinedQuery);
-      console.log("Params:", queryParams);
-
       const rows = await db.query(combinedQuery, queryParams);
 
       if (!Array.isArray(rows)) {
@@ -266,10 +242,7 @@ class FinalGradeService {
         return { data: [], status: true };
       }
 
-      console.log("Raw data from DB:", rows);
       const formattedData = this.formatDataForBoxplot(rows);
-      console.log("Formatted data:", formattedData);
-
       return { data: formattedData, status: true };
     } catch (error) {
       console.error("Error in fetchFinalGradesByFilters:", error);
@@ -299,16 +272,7 @@ class FinalGradeService {
     if (prodiId) queryParams.push(prodiId);
 
     try {
-      console.log("Fetching courses by filters:", {
-        kampusId,
-        facultyId,
-        prodiId,
-      });
-      console.log("Query:", query);
-      console.log("Params:", queryParams);
-
       const rows = await db.query(query, queryParams);
-      console.log("Courses response:", rows);
       return { data: Array.isArray(rows) ? rows : [], status: true };
     } catch (error) {
       console.error("Error fetching courses by filters:", error.message);

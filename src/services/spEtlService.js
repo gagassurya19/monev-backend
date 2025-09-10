@@ -561,16 +561,6 @@ const spEtlService = {
         ", "
       )} WHERE id = ?`;
 
-      logger.info(`Updating SP ETL log ${logId}:`, {
-        typeRun,
-        endDate,
-        duration,
-        status,
-        totalRecords,
-        offset,
-        updateFields,
-      });
-
       const result = await database.query(query, values);
 
       return result;

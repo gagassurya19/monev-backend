@@ -37,7 +37,6 @@ const userDetectLoginService = {
       // Step 2: Run UDL ETL
       logger.info("Running UDL ETL...");
       const etlResponse = await userDetectLoginService.runEtl();
-      logger.info("UDL ETL response:", etlResponse);
 
       // Step 3: Update log to "execute_export_data" type
       logger.info("Updating log to export data type...");
@@ -49,7 +48,6 @@ const userDetectLoginService = {
       // Step 4: Run Export data
       logger.info("Running Export Data...");
       const exportResponse = await userDetectLoginService.runExportData(logId);
-      logger.info("Export Data response:", exportResponse);
 
       // Step 5: Update log with success status and end_date
       const endTime = new Date();
